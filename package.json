@@ -1,0 +1,27 @@
+{
+  "name": "lp_parse_server_template",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liltimtim/LP-Parse-Server-Template.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/liltimtim/LP-Parse-Server-Template/issues"
+  },
+  "homepage": "https://github.com/liltimtim/LP-Parse-Server-Template#readme",
+  "dependencies": {
+    "express": "^4.16.2",
+    "parse": "^1.11.0",
+    "parse-dashboard": "^1.1.2",
+    "parse-server": "^2.7.1",
+    "parse-server-sendgrid-adapter": "^1.0.0",
+    "path": "^0.12.7"
+  }
+}

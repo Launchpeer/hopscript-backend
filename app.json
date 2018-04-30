@@ -1,0 +1,66 @@
+{
+  "name": "lp-parse-template",
+  "description":"Launchpeer bare bones parse server with dashboard.",
+  "keywords": ["node", "express", "parse"],
+  "repository":"https://github.com/liltimtim/LP-Parse-Server-Template",
+  "env": {
+    "PARSE_SERVER_MOUNT": {
+      "description": "Configure Parse API route. usually its /parse but can be anything just include a /the-name.",
+      "value": "/parse"
+    },
+    "PARSE_APP_ID": {
+      "description": "This value MUST match your heroku app name.",
+      "value": "myAppId"
+    },
+    "PARSE_MASTER_KEY": {
+      "description": "A key that overrides all permissions. Keep this secret.",
+      "value": "myMasterKey"
+    },
+    "PARSE_SERVER_URL": {
+      "description": "URL to connect to your Heroku instance (update with your app's name + PARSE_MOUNT)",
+      "value": "https://yourappname.herokuapp.com/parse"
+    },
+    "PARSE_DASHBOARD_APP_NAME": {
+      "description":"replace 'yourappname' with the name you defined for your heroku deploy.",
+      "value":"yourappname"
+    },
+    "PARSE_ADMIN_DASHBOARD_USERNAME": {
+      "description":"Username for the parse dashboard.  Allows administrative access to your database.",
+      "value":"admin"
+    },
+    "PARSE_ADMIN_DASHBOARD_PASSWORD": {
+      "description":"Password for the admin account for your parse dashboard",
+      "value":"password"
+    },
+    "PARSE_CLIENT_KEY": {
+      "description":"The key used to connect to your server by clients.",
+      "value":"some_key_generated"
+    },
+    "GCM_SENDER_ID": {
+      "description":"Sender ID assigned to you via Firebase Console.",
+      "value":"abc123"
+    },
+    "GCM_API_KEY": {
+      "description":"API key from Firebase API",
+      "value":"abc123"
+    },
+    "APPLE_BUNDLE_ID": {
+      "description":"The bundle identifier used with your apple application example: com.myapp.ios",
+      "value":"com.lp.example.app"
+    },
+    "APNS_PASSPHRASE": {
+      "description":"When exporting .p12 files for push certificates, you can set a password on the file.  This is that password.",
+      "value":"password"
+    },
+    "APNS_PUSH_PRODUCTION": {
+      "description":"Tells the server to use either sandbox push certs or production.  You should set to true if deploying to production.",
+      "value":"false"
+    }
+  },
+  "image": "heroku/nodejs",
+  "addons": [{
+    "plan": "mongolab:sandbox"
+  }]
+}
+
+    
