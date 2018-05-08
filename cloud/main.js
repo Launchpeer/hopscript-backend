@@ -1,3 +1,5 @@
+const routes = require ('./routes');
+
 /**
  * Place Parse Cloud Code Here
  */
