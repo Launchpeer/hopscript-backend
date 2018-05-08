@@ -25,3 +25,47 @@ Parse.Cloud.define('sendEmailInvite', function(req, res) {
   sgMail.send(msg);
   return res.success("email sent");
 })
+
+/**
+ * As a broker I want to remove an Agent from my Brokerage
+ * 
+ * We query the database for Users, using the Agent's id
+ * If found, the Agent is removed from the database
+ * Removing the Agent will trigger an afterDelete to be called
+ * Loading and Errors are handled for UX
+
+ * @param  {string} agentId the Agent's parse Id
+ */
+Parse.Cloud.define('removeAgent', function(req, res) {
+  const query = new Parse.Query(Parse.User);
+  query.get(req.params.agentId, { useMasterKey: true })
+    .then((agent) => {
+      if (!agent) { return res.error(`User with objectId ${req.params.agentId} does not exist`); }
+      return user.destroy({ useMasterKey: true });
+    })
+    .then(obj => res.success(obj))
+    .catch(err => res.error(err));
+})
+
+/**
+ * As a broker I want to remove an Agent from my Brokerage
+ *
+ * After removeAgent is complete, this afterDelete function is called by Parse automatically
+ * We check if the User that was just deleted is an Agent
+ * If so, we get the Brokerage Pointer object from the Agent and query Users for a matching Brokerage id
+ * The Agent Pointer is then removed from the Brokerage and the Brokerage is saved
+ */
+
+Parse.Cloud.afterDelete(Parse.User, (req, res) => {
+  const userObj = req.object;
+  if (userObj.get('role') === 'agent') {
+    const brokerage = userObj.get('brokerage');
+    const query = new Parse.Query('User');
+    query.get(brokerage.id, { useMasterKey: true })
+    .then((b) => {
+      b.remove("agents", req.object);
+      b.save(null, { useMasterKey: true });
+      res.success("AGENTS REMOVED FROM", b.id);
+    });
+  }
+});

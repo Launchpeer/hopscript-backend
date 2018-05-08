@@ -13,7 +13,7 @@ To Run:
 ```
 
 
-# Features
+# Cloud Code
 
 ## inviteAgent
 `cloud/routes/agents`
@@ -22,3 +22,10 @@ To Run:
 
 A `User` with the role `agent` is created in the database. That agent is added to the brokerage's `agents` array as a `Pointer`.
 The agent is given a generated password and sent an invitation email with log in instructions.
+
+##removeAgent
+`cloud/routes/agents`
+
+*As a broker I want to delete an agent and dissociate them from my Brokerage*
+
+A `User` with the role `agent` is deleted from the database. The `agent` Pointer is then removed from the brokerage's `agents` array.
