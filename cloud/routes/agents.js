@@ -1,8 +1,8 @@
 const config = require('../../config');
+const sgMail = require('@sendgrid/mail');
+sgMail.setApiKey(config.SENDGRID_API_KEY);
 
 Parse.Cloud.define('sendEmailInvite', function(req, res) {
-  const sgMail = require('@sendgrid/mail');
-  sgMail.setApiKey(config.SENDGRID_API_KEY);
   const msg = {
     to: req.params.email,
     from: 'no-reply@swiftscript.com',
