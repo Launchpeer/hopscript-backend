@@ -28,7 +28,7 @@ Parse.Cloud.define('sendEmailInvite', function(req, res) {
 
 /**
  * As a broker I want to remove an Agent from my Brokerage
- * 
+ *
  * We query the database for Users, using the Agent's id
  * If found, the Agent is removed from the database
  * Removing the Agent will trigger an afterDelete to be called
@@ -40,8 +40,8 @@ Parse.Cloud.define('removeAgent', function(req, res) {
   const query = new Parse.Query(Parse.User);
   query.get(req.params.agentId, { useMasterKey: true })
     .then((agent) => {
-      if (!agent) { return res.error(`User with objectId ${req.params.agentId} does not exist`); }
-      return user.destroy({ useMasterKey: true });
+      if (!agent) { return res.error(`User with agentId ${req.params.agentId} does not exist`); }
+      return agent.destroy({ useMasterKey: true });
     })
     .then(obj => res.success(obj))
     .catch(err => res.error(err));
