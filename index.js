@@ -34,6 +34,11 @@ const options = {
   clientKey: config.PARSE_CLIENT_KEY,
   publicServerURL: config.PARSE_SERVER_URL,
   javascriptKey: config.PARSE_CLIENT_KEY,
+  customPages: {
+    invalidLink: `${config.PORTAL_URL}/`,
+    verifyEmailSuccess: `${config.PORTAL_URL}/verified`,
+    choosePassword: `${config.PORTAL_URL}/reset-password`
+  },
   push: {
     ios: [
       //create and support both sandbox and production
