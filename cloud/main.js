@@ -40,3 +40,22 @@ Parse.Cloud.define('resetPassword', (req, response) => {
     }
   })
 })
+
+Parse.Cloud.define('removeUser', (req, res) => {
+  if (!req.params.userId) {
+    return res.error('Param: userId is required')
+  }
+  const query = new Parse.Query(Parse.User)
+  query
+    .get(req.params.userId, { useMasterKey: true })
+    .then(user => {
+      if (!user) {
+        return res.error(
+          `User with objectId ${req.params.userId} does not exist`
+        )
+      }
+      return user.destroy({ useMasterKey: true })
+    })
+    .then(obj => res.success(obj))
+    .catch(err => res.error(err))
+})
