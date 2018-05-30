@@ -59,3 +59,18 @@ Parse.Cloud.define('removeUser', (req, res) => {
     .then(obj => res.success(obj))
     .catch(err => res.error(err))
 })
+
+
+Parse.Cloud.afterDelete(Parse.User, (req, res) => {
+  const userObj = req.object;
+  if (userObj.get('role') === 'brokerage') {
+    const agents = userObj.get('agents');
+    const query = new Parse.Query('User');
+    agents.map(agent =>
+    query.get(agent.objectId, { useMasterKey: true })
+    .then((agent) => {
+    agent.destroy( { useMasterKey: true });
+      res.success("AGENT REMOVED");
+    }));
+  }
+});
