@@ -16,6 +16,7 @@ const productionDirectoryLocation =
 const sandboxDirectoryLocation =
   __dirname + '/apns_push_certs/sandbox/apns_sandbox.p12'
 const sendgrid = require('parse-server-sendgrid-adapter')
+require('dotenv').config()
 
 /**
  * Parse server options
