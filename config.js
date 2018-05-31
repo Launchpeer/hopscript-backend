@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 module.exports = {
   MONGODB_URI: process.env.MONGODB_URI,
   PARSE_APP_ID: process.env.PARSE_APP_ID,

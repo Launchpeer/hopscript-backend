@@ -18,7 +18,9 @@
   "homepage": "https://github.com/liltimtim/LP-Parse-Server-Template#readme",
   "dependencies": {
     "@sendgrid/mail": "^6.2.1",
+    "dotenv": "^5.0.1",
     "express": "^4.16.2",
+    "mc-stripe-server": "git+https://github.com/liltimtim/mc-stripe-server.git",
     "parse": "^1.11.0",
     "parse-dashboard": "^1.1.2",
     "parse-server": "^2.7.1",
@@ -26,7 +28,6 @@
     "passport": "^0.3.2",
     "passport-stripe": "^0.2.2",
     "path": "^0.12.7",
-    "mc-stripe-server": "git+https://github.com/liltimtim/mc-stripe-server.git",
     "request": "^2.85.0",
     "stripe": "^4.25.0"
   }
