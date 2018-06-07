@@ -1,5 +1,6 @@
 const config = require('../../config');
 const sgMail = require('@sendgrid/mail');
+
 sgMail.setApiKey(config.SENDGRID_API_KEY);
 
 /**
@@ -15,7 +16,7 @@ sgMail.setApiKey(config.SENDGRID_API_KEY);
  * @param  {string} brokerageEmail email address of the Brokerage
  */
 
-Parse.Cloud.define('sendEmailInvite', function(req, res) {
+Parse.Cloud.define('sendEmailInvite', (req, res) => {
   const msg = {
     to: req.params.email,
     from: 'no-reply@swiftscript.com',
@@ -24,7 +25,7 @@ Parse.Cloud.define('sendEmailInvite', function(req, res) {
   };
   sgMail.send(msg);
   return res.success("email sent");
-})
+});
 
 /**
  * As a broker I want to remove an Agent from my Brokerage
@@ -36,7 +37,7 @@ Parse.Cloud.define('sendEmailInvite', function(req, res) {
 
  * @param  {string} agentId the Agent's parse Id
  */
-Parse.Cloud.define('removeAgent', function(req, res) {
+Parse.Cloud.define('removeAgent', (req, res) => {
   const query = new Parse.Query(Parse.User);
   query.get(req.params.agentId, { useMasterKey: true })
     .then((agent) => {
@@ -45,4 +46,4 @@ Parse.Cloud.define('removeAgent', function(req, res) {
     })
     .then(obj => res.success(obj))
     .catch(err => res.error(err));
-})
+});

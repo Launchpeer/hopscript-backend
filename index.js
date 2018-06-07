@@ -4,20 +4,16 @@
  * Installing Parse as middleware on top of express if we later wish to run our own express server in tandem
  */
 
-const express = require('express')
-const ParseServer = require('parse-server').ParseServer
-const app = express()
-const config = require('./config')
-const path = require('path')
-const PORT = process.env.PORT || 1337
-const ParseDashboard = require('parse-dashboard')
-const productionDirectoryLocation =
-  __dirname + '/apns_push_certs/production/apns_production.p12'
-const sandboxDirectoryLocation =
-  __dirname + '/apns_push_certs/sandbox/apns_sandbox.p12'
-const sendgrid = require('parse-server-sendgrid-adapter')
+const express = require('express');
+const { ParseServer } = require('parse-server');
 
-require('dotenv').config()
+const app = express();
+const config = require('./config');
+
+const PORT = process.env.PORT || 1337;
+const ParseDashboard = require('parse-dashboard');
+const sendgrid = require('parse-server-sendgrid-adapter');
+require('dotenv').config();
 
 /**
  * Parse server options
@@ -28,7 +24,7 @@ const options = {
     apiKey: config.SENDGRID_API_KEY,
     fromAddress: config.SENDGRID_FROM_EMAIL
   }),
-  cloud: __dirname + '/cloud/main.js',
+  cloud: `${__dirname}/cloud/main.js`,
   databaseURI: config.MONGODB_URI,
   appId: config.PARSE_APP_ID,
   masterKey: config.PARSE_MASTER_KEY,
@@ -43,30 +39,9 @@ const options = {
     invalidLink: `${config.PORTAL_URL}/`,
     verifyEmailSuccess: `${config.PORTAL_URL}/verified`,
     choosePassword: `${config.PORTAL_URL}/reset-password`
-  },
-  push: {
-    ios: [
-      //create and support both sandbox and production
-      {
-        pfx: sandboxDirectoryLocation,
-        passphrase: config.APNS_PASSPHRASE,
-        bundleId: config.APPLE_BUNDLE_ID,
-        production: false
-      },
-
-      // issue created on github: https://github.com/parse-community/parse-server/issues/3911
-      // setting value to true even though its a production cert crashes server
-
-      {
-        pfx: productionDirectoryLocation,
-        passphrase: config.APNS_PASSPHRASE,
-        bundleId: config.APPLE_BUNDLE_ID,
-        production: false
-      }
-    ]
   }
-}
-const api = new ParseServer(options)
+};
+const api = new ParseServer(options);
 // supportedPushLocales added due to this issue: https://github.com/parse-community/parse-dashboard/issues/811
 // waiting for fix to upgrade to newest package
 const dashboard = new ParseDashboard(
@@ -92,7 +67,7 @@ const dashboard = new ParseDashboard(
   {
     allowInsecureHTTP: true
   }
-)
+);
 // server up parse api
 app.use(config.PARSE_SERVER_MOUNT, api)
 app.use('/dashboard', dashboard)
