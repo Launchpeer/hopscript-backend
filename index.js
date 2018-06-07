@@ -16,6 +16,7 @@ const productionDirectoryLocation =
 const sandboxDirectoryLocation =
   __dirname + '/apns_push_certs/sandbox/apns_sandbox.p12'
 const sendgrid = require('parse-server-sendgrid-adapter')
+
 require('dotenv').config()
 
 /**
@@ -35,6 +36,9 @@ const options = {
   clientKey: config.PARSE_CLIENT_KEY,
   publicServerURL: config.PARSE_SERVER_URL,
   javascriptKey: config.PARSE_CLIENT_KEY,
+  liveQuery: {
+    classNames: ['User', 'Script', 'Question', 'Answer']
+  },
   customPages: {
     invalidLink: `${config.PORTAL_URL}/`,
     verifyEmailSuccess: `${config.PORTAL_URL}/verified`,
@@ -92,6 +96,11 @@ const dashboard = new ParseDashboard(
 // server up parse api
 app.use(config.PARSE_SERVER_MOUNT, api)
 app.use('/dashboard', dashboard)
-app.listen(PORT, () => {
+
+const httpServer = require('http').createServer(app);
+
+httpServer.listen(PORT, () => {
   console.log(`parse server running on ${PORT}`)
 })
+
+const parseLiveQuery = ParseServer.createLiveQueryServer(httpServer);

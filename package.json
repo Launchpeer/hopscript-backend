@@ -20,6 +20,7 @@
     "@sendgrid/mail": "^6.2.1",
     "dotenv": "^5.0.1",
     "express": "^4.16.2",
+    "http": "0.0.0",
     "mc-stripe-server": "git+https://github.com/liltimtim/mc-stripe-server.git",
     "parse": "^1.11.0",
     "parse-dashboard": "^1.1.2",
