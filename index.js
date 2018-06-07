@@ -32,6 +32,9 @@ const options = {
   clientKey: config.PARSE_CLIENT_KEY,
   publicServerURL: config.PARSE_SERVER_URL,
   javascriptKey: config.PARSE_CLIENT_KEY,
+  liveQuery: {
+    classNames: ['User', 'Script', 'Question', 'Answer']
+  },
   customPages: {
     invalidLink: `${config.PORTAL_URL}/`,
     verifyEmailSuccess: `${config.PORTAL_URL}/verified`,
@@ -66,8 +69,13 @@ const dashboard = new ParseDashboard(
   }
 );
 // server up parse api
-app.use(config.PARSE_SERVER_MOUNT, api);
-app.use('/dashboard', dashboard);
-app.listen(PORT, () => {
-  console.log(`parse server running on ${PORT}`);
-});
+app.use(config.PARSE_SERVER_MOUNT, api)
+app.use('/dashboard', dashboard)
+
+const httpServer = require('http').createServer(app);
+
+httpServer.listen(PORT, () => {
+  console.log(`parse server running on ${PORT}`)
+})
+
+const parseLiveQuery = ParseServer.createLiveQueryServer(httpServer);
