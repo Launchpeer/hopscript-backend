@@ -69,3 +69,18 @@ Parse.Cloud.define('removeGroupFromLead', (req, res) => {
     })
     .catch(err => res.error(err));
 });
+
+/**
+ * As an agent I want to fetch a Lead
+ * We query the database for Lead
+ * If found, we return the Lead & its associated leadGroups.
+ *
+ */
+
+Parse.Cloud.define('fetchLead', (req, res) => {
+  const leadQuery = new Parse.Query('Lead');
+  leadQuery.include('leadGroups');
+  leadQuery.get(req.params.lead)
+    .then(lead => res.success(lead))
+    .catch(err => res.error(err));
+});
