@@ -84,3 +84,22 @@ Parse.Cloud.define('fetchLead', (req, res) => {
     .then(lead => res.success(lead))
     .catch(err => res.error(err));
 });
+
+
+/**
+ * As an agent I want to delete a Lead
+ * We query the database for Lead
+ * If found, we delete the Lead.
+ *
+ */
+
+Parse.Cloud.define('deleteLead', (req, res) => {
+  const leadQuery = new Parse.Query('Lead');
+  leadQuery.get(req.params.lead)
+    .then((lead) => {
+      if (!lead) { return res.error(`Lead with ID ${req.params.lead} does not exist`); }
+      return lead.destroy();
+    })
+    .then(obj => res.success(obj))
+    .catch(err => res.error(err));
+});
