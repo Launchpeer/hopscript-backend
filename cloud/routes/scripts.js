@@ -1,14 +1,33 @@
+// This function is used to trigger an update to the Script //
+// This is handy when you update a pointer and want the Script live query to know to update itself //
 
+function _incrementScriptUpdate(scriptId) {
+  return new Promise((resolve) => {
+    const Script = Parse.Object.extend('Script');
+    const query = new Parse.Query(Script);
+    query.get(scriptId)
+      .then(script => {
+        script.increment('updates');
+        resolve(script.save())
+      })
+      .catch(err => {
+        console.log(err);
+      })
+  })
+}
 
-function _createNewQuestion({ body, category, audioURI }) {
-  const questionClass = Parse.Object.extend('Question');
-  const Question = new questionClass;
-  if(body) { Question.set('body', body); }
-  if(category) { Question.set('category', category); }
-  if (audio) {
-    Question.set('audioURI', audio);
-  }
-  resolve(Question.save());
+function _createNewQuestion({ body, category, audio }) {
+  return new Promise((resolve) => {
+    const questionClass = Parse.Object.extend('Question');
+    const Question = new questionClass;
+    if(body) { Question.set('body', body); }
+    if(category) { Question.set('category', category); }
+    if (audio) {
+      console.log('deal with audio', audio);
+      // Question.set('audio', audio);
+    }
+    resolve(Question.save());
+  })
 }
 
 function _reconcileQuestionToScript(question, scriptId) {
@@ -17,7 +36,7 @@ function _reconcileQuestionToScript(question, scriptId) {
     const query = new Parse.Query(Script);
     query.get(scriptId)
       .then((script) => {
-        script.add('question', question);
+        script.add('questions', question);
         resolve(script.save());
       })
   })
@@ -39,11 +58,18 @@ function _fetchQuestion(questionId) {
  */
 
 function _createNewAnswer({ body, route }) {
-  const answerClass = Parse.Object.extend('Answer');
-  const Answer = new answerClass;
-  if (body) { Answer.set('body', body); }
-  if (route) { Answer.set('route', route); }
-  resolve(Answer.save());
+  return new Promise((resolve) => {
+    const answerClass = Parse.Object.extend('Answer');
+    const Answer = new answerClass;
+    if (body) { Answer.set('body', body); }
+    if (route) {
+      _fetchQuestion(route)
+        .then((question) => {
+          Answer.set('route', question);
+        })
+      }
+    resolve(Answer.save());
+  })
 }
 
 /**
@@ -55,8 +81,9 @@ function _createNewAnswer({ body, route }) {
  * @param  {string} questionId the Parse objectId of the Question
  */
 
-function _reconcileAnswertoQuestion(question, questionId) {
+function _reconcileAnswertoQuestion(answer, questionId) {
   return new Promise((resolve) => {
+    console.log('questionId', questionId)
     const Question = Parse.Object.extend('Question');
     const query = new Parse.Query(Question);
     query.get(questionId)
@@ -103,6 +130,8 @@ function _reconcileScriptToUser(script, userId) {
  */
 
 
+
+
 Parse.Cloud.define('createNewScript', (req, res) => {
   _createNewScript()
     .then(script => {
@@ -129,6 +158,7 @@ Parse.Cloud.define('createNewScript', (req, res) => {
  */
 
 Parse.Cloud.define('createNewQuestion', (req, res) => {
+  console.log('createnewquestion', req.params.question);
   _createNewQuestion(req.params.question)
     .then(question => {
       _reconcileQuestionToScript(question, req.params.scriptId)
@@ -141,27 +171,6 @@ Parse.Cloud.define('createNewQuestion', (req, res) => {
     })
 })
 
-/**
- * As an agent, I want to add an Answer to my Script Question
-
- A Parse Answer Object is instantiated, then that Answer Object is added to the Question as a Pointer
-
- * @param  {object} answer contains a body, and a route
- * @param  {string} questionId Parse objectId for the Question
- */
-
-Parse.Cloud.define('createNewAnswer', (req, res) => {
-  _createNewAnswer(req.answer)
-    .then(answer => {
-      _reconcileAnswerToQuestion(answer, req.questionId)
-        .then(question => {
-          res.success(question);
-        })
-        .catch(err => {
-          res.error(err);
-        })
-    })
-})
 
 Parse.Cloud.define('updateScript', (req, res) => {
   const Script = Parse.Object.extend('Script');
@@ -180,4 +189,109 @@ Parse.Cloud.define('updateScript', (req, res) => {
     .catch(err => {
       res.error(err)
     })
+})
+
+/**
+ * As an agent, I want to update a Question
+
+ * the question is fetched using the objectId
+
+ * @param  {object} answer contains a body, and a route
+ * @param  {string} questionId Parse objectId for the Question
+ */
+
+Parse.Cloud.define('updateQuestion', (req, res) => {
+  _fetchQuestion(req.params.questionId)
+    .then(question => {
+      Object.keys(req.params.question).forEach((key) => {
+        question.set(key, req.params.question[key])
+      })
+      question.save()
+        .then(() => {
+          _incrementScriptUpdate(req.params.scriptId)
+            .then(() => {
+              res.success();
+            })
+            .catch((err) => {
+              res.error(err);
+            })
+        })
+    })
+    .catch(err => {
+      res.error(err)
+    })
+})
+
+/**
+ * As an agent, I want to add an Answer to my Script Question
+
+ A Parse Answer Object is instantiated, then that Answer Object is added to the Question as a Pointer
+
+ * @param  {object} answer contains a body, and a route
+ * @param  {string} questionId Parse objectId for the Question
+ */
+
+function _createAndReconcileAnswer(answer, questionId) {
+  return new Promise((resolve) => {
+    _createNewAnswer(answer)
+      .then(answer => {
+        console.log('_createAndReconcileAnswer')
+        _reconcileAnswerToQuestion(answer, questionId)
+          .then(() => {
+            resolve();
+          })
+      })
+  })
+}
+Parse.Cloud.define('createNewAnswer', (req, res) => {
+  _createAndReconcileAnswer(req.params.answer, req.params.questionId)
+    .then(question => {
+      res.success(question);
+    })
+    .catch(err => {
+      res.error(err);
+    });
+})
+
+function _formatAnswerData(data) {
+  const keys = Object.keys(data);
+  const values = Object.values(data);
+  return keys.map(k => {
+    if (k.startsWith('answer')) {
+      return {
+        body: values[keys.indexOf(k)],
+        route: values[keys.indexOf(k) + 1]
+      }
+    }
+  }).filter((j) => { if(j) { return j} })
+}
+
+/**
+ * As an agent, I want to add an Answer to my Script Questions
+
+ * We format the object data by matching the answer and route
+ * This data becomes an array of objects
+ * We map over this object array and create a new array of promises
+ * We then wait for all of the promises to resolve before triggering an update to the Script
+ * The web portal is listening for updates to the Script and will trigger a fetch on it's side
+
+ * @param  {object} data contains routes and answers
+ * @param  {string} questionId Parse objectId for the Question
+ * @param  {string} scriptId Parse objectId for the Script
+*/
+
+Parse.Cloud.define('addAnswers', (req, res) => {
+  console.log('add answers', req.params.data);
+  Promise.all(_formatAnswerData(req.params.data)
+    .map((answer) => { _createAndReconcileAnswer(answer, req.params.questionId)}))
+      .then(() => {
+        _incrementScriptUpdate(req.params.scriptId)
+          .then(() => {
+            res.success();
+          })
+          .catch((err) => {
+            res.error(err);
+          })
+      })
+      .catch(err => res.error(err));
 })

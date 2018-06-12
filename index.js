@@ -76,6 +76,7 @@ const httpServer = require('http').createServer(app);
 
 httpServer.listen(PORT, () => {
   console.log(`parse server running on ${PORT}`)
+  console.log('sup')
 })
 
 const parseLiveQuery = ParseServer.createLiveQueryServer(httpServer);
