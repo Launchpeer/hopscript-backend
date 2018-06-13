@@ -11,7 +11,7 @@ function _incrementScriptUpdate(scriptId) {
         resolve(script.save())
       })
       .catch(err => {
-        console.log(err);
+        console.log('increment scriptupdate', err);
       })
   })
 }
@@ -44,6 +44,7 @@ function _reconcileQuestionToScript(question, scriptId) {
 
 function _fetchQuestion(questionId) {
   return new Promise((resolve) => {
+    console.log('_fetchQuestion', questionId);
     const Question = Parse.Object.extend('Question');
     const query = new Parse.Query(Question);
     resolve(query.get(questionId));
@@ -59,16 +60,19 @@ function _fetchQuestion(questionId) {
 
 function _createNewAnswer({ body, route }) {
   return new Promise((resolve) => {
+    console.log('route', route);
     const answerClass = Parse.Object.extend('Answer');
     const Answer = new answerClass;
-    if (body) { Answer.set('body', body); }
-    if (route) {
-      _fetchQuestion(route)
-        .then((question) => {
-          Answer.set('route', question);
-        })
-      }
-    resolve(Answer.save());
+    Answer.set('body', body);
+    _fetchQuestion(route)
+      .then((question) => {
+        Answer.set('route', question);
+        resolve(Answer.save());
+      })
+      .catch((err) => {
+        console.log('_fetchQuestion err', err);
+      })
+
   })
 }
 
@@ -81,13 +85,14 @@ function _createNewAnswer({ body, route }) {
  * @param  {string} questionId the Parse objectId of the Question
  */
 
-function _reconcileAnswertoQuestion(answer, questionId) {
+function addAnswertoQuestion(answer, questionId) {
   return new Promise((resolve) => {
     console.log('questionId', questionId)
     const Question = Parse.Object.extend('Question');
     const query = new Parse.Query(Question);
     query.get(questionId)
       .then((question) => {
+        console.log('question', question);
         question.add('answers', answer);
         resolve(question.save());
       })
@@ -210,14 +215,16 @@ Parse.Cloud.define('updateQuestion', (req, res) => {
         .then(() => {
           _incrementScriptUpdate(req.params.scriptId)
             .then(() => {
-              res.success();
+              res.success('got em');
             })
             .catch((err) => {
+              console.log('increment err', err);
               res.error(err);
             })
         })
     })
     .catch(err => {
+      console.log('fetch question err', err);
       res.error(err)
     })
 })
@@ -234,12 +241,18 @@ Parse.Cloud.define('updateQuestion', (req, res) => {
 function _createAndReconcileAnswer(answer, questionId) {
   return new Promise((resolve) => {
     _createNewAnswer(answer)
-      .then(answer => {
-        console.log('_createAndReconcileAnswer')
-        _reconcileAnswerToQuestion(answer, questionId)
+      .then((parseAnswer) => {
+        console.log('_createAndReconcileAnswer', parseAnswer)
+        addAnswertoQuestion(parseAnswer, questionId)
           .then(() => {
             resolve();
           })
+          .catch((err) => {
+            console.log('reconcileAnswerToQuestion', err);
+          })
+      })
+      .catch((err) => {
+        console.log('createNewAnswer err', err);
       })
   })
 }
@@ -281,9 +294,8 @@ function _formatAnswerData(data) {
 */
 
 Parse.Cloud.define('addAnswers', (req, res) => {
-  console.log('add answers', req.params.data);
   Promise.all(_formatAnswerData(req.params.data)
-    .map((answer) => { _createAndReconcileAnswer(answer, req.params.questionId)}))
+    .map((answer) => { return _createAndReconcileAnswer(answer, req.params.questionId)}))
       .then(() => {
         _incrementScriptUpdate(req.params.scriptId)
           .then(() => {
