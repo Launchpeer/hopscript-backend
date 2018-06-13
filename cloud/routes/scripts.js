@@ -99,12 +99,18 @@ function addAnswertoQuestion(answer, questionId) {
   })
 }
 
+function _fetchScript(scriptId) {
+  return new Promise((resolve) => {
+    const Script = Parse.Object.extend('Script');
+    const query = new Parse.Query(Script);
+    query.include('questions');
+    query.include('questions.answers');
+    resolve(query.get(scriptId));
+  })
+}
+
 Parse.Cloud.define('fetchScript', (req, res) => {
-  const Script = Parse.Object.extend('Script');
-  const query = new Parse.Query(Script);
-  query.include('questions');
-  query.include('questions.answers');
-  query.get(req.params.scriptId)
+  _fetchScript(req.params.scriptId)
     .then(script => {
       res.success(script);
     })
@@ -163,7 +169,6 @@ Parse.Cloud.define('createNewScript', (req, res) => {
  */
 
 Parse.Cloud.define('createNewQuestion', (req, res) => {
-  console.log('createnewquestion', req.params.question);
   _createNewQuestion(req.params.question)
     .then(question => {
       _reconcileQuestionToScript(question, req.params.scriptId)
@@ -244,8 +249,8 @@ function _createAndReconcileAnswer(answer, questionId) {
       .then((parseAnswer) => {
         console.log('_createAndReconcileAnswer', parseAnswer)
         addAnswertoQuestion(parseAnswer, questionId)
-          .then(() => {
-            resolve();
+          .then((question) => {
+            resolve(question);
           })
           .catch((err) => {
             console.log('reconcileAnswerToQuestion', err);
@@ -297,13 +302,62 @@ Parse.Cloud.define('addAnswers', (req, res) => {
   Promise.all(_formatAnswerData(req.params.data)
     .map((answer) => { return _createAndReconcileAnswer(answer, req.params.questionId)}))
       .then(() => {
-        _incrementScriptUpdate(req.params.scriptId)
-          .then(() => {
-            res.success();
+        _fetchScript(req.params.scriptId)
+          .then((script) => {
+            res.success(script);
           })
           .catch((err) => {
             res.error(err);
           })
       })
       .catch(err => res.error(err));
+})
+
+function _fetchAnswer(answerId) {
+  return new Promise((resolve) => {
+    const Answer = Parse.Object.extend('Answer');
+    const query = new Parse.Query(Answer);
+    resolve(query.get(answerId));
+  })
+}
+
+function _deleteAnswer(answer) {
+  return new Promise((resolve) => {
+    resolve(answer.destroy({ useMasterKey: true }));
+  })
+}
+
+function _dissociateAnswerFromQuestion(answer, questionId) {
+  return new Promise((resolve) => {
+    _fetchQuestion(questionId)
+      .then((question) => {
+        question.remove("answers", answer)
+        resolve(question.save());
+      })
+  })
+}
+
+function _deleteAndDissociateAnswer(answerId, scriptId, questionId) {
+  return new Promise((resolve) => {
+    _fetchAnswer(answerId)
+      .then((answer) => {
+        Promise.all([
+          _deleteAnswer(answer),
+          _dissociateAnswerFromQuestion(answer, questionId)
+        ])
+          .then(() => {
+            resolve(_fetchScript(scriptId))
+          })
+      })
+  })
+}
+
+Parse.Cloud.define('deleteAnswer', (req, res) => {
+  _deleteAndDissociateAnswer(req.params.answerId, req.params.scriptId, req.params.questionId)
+    .then((script) => {
+      res.success(script);
+    })
+    .catch((err) => {
+      res.error('_dissociateAnswerFromQuestion ERR:', err);
+    })
 })
