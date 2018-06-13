@@ -14,29 +14,24 @@ Parse.Cloud.define('updateLead', (req, res) => {
   const leadQuery = new Parse.Query('Lead');
   leadQuery.get(req.params.lead)
     .then((lead) => {
-      if (req.params.name) {
-        lead.set('name', req.params.name);
-      }
-      if (req.params.phone) {
-        lead.set('phone', req.params.phone);
-      }
-      if (req.params.email) {
-        lead.set('email', req.params.email);
-      }
-      if (req.params.leadType) {
-        lead.set('leadType', req.params.leadType);
-      }
-      if (req.params.leadGroup) {
-        const groupQuery = new Parse.Query('LeadGroup');
-        groupQuery.get(req.params.leadGroup)
-          .then((leadGroup) => {
-            lead.addUnique("leadGroups", leadGroup);
-            leadGroup.addUnique("leads", lead);
-            leadGroup.save();
-          });
-      }
+      Object.keys(req.params).forEach((key) => {
+        if (key === 'leadGroup') {
+          const groupQuery = new Parse.Query('LeadGroup');
+          groupQuery.get(req.params.leadGroup)
+            .then((leadGroup) => {
+              lead.addUnique("leadGroups", leadGroup);
+              leadGroup.addUnique("leads", lead);
+              leadGroup.save();
+            });
+        } else {
+          lead.set(key, req.params[key]);
+        }
+      });
       lead.save()
-        .then(r => res.success(r));
+        .then((r) => {
+          console.log('updated lead', r);
+          res.success(r);
+        });
     })
     .catch(err => res.error(err));
 });
