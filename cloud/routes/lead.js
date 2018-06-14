@@ -1,4 +1,42 @@
 /**
+ * As an agent I want to create a Lead
+
+ *
+ */
+
+Parse.Cloud.define('createLead', (req, res) => {
+  const { lead } = req.params;
+  const Agent = req.user;
+  const Lead = Parse.Object.extend('Lead');
+  const LObj = new Lead();
+  const formattedPhone = `+1${lead.phone}`;
+  LObj.set('name', lead.name);
+  LObj.set('phone', formattedPhone);
+  LObj.set('email', lead.email);
+  LObj.set('leadType', lead.leadType);
+  LObj.set('leadGroups', lead.leadGroup);
+  LObj.set('agent', Agent);
+  LObj.save().then((r) => {
+    res.success(r);
+  });
+
+  const groupQuery = new Parse.Query('LeadGroup');
+  groupQuery.get(lead.leadGroup)
+    .then((leadGroup) => {
+      leadGroup.addUnique("leads", lead);
+      leadGroup.save();
+    }).then((r) => {
+      res.success(r);
+    });
+
+  Agent.addUnique('lead', lead);
+  Agent.save().then((r) => {
+    res.success(r);
+  });
+});
+
+
+/**
  * As an agent I want to update a Lead
  *
  * We query the database for Leads, using the Lead's id
@@ -29,7 +67,6 @@ Parse.Cloud.define('updateLead', (req, res) => {
       });
       lead.save()
         .then((r) => {
-          console.log('updated lead', r);
           res.success(r);
         });
     })
@@ -80,6 +117,20 @@ Parse.Cloud.define('fetchLead', (req, res) => {
     .catch(err => res.error(err));
 });
 
+/**
+ * As an agent I want to fetch my Leads
+ * We query the database for Leads
+ * If found, we return the Leads
+ *
+ */
+Parse.Cloud.define('fetchLeads', (req, res) => {
+  const leadsQuery = new Parse.Query('Lead');
+  leadsQuery.equalTo('agent', req.user);
+  leadsQuery.find()
+    .then(leads => res.success(leads))
+    .catch(err => res.error(err));
+});
+
 
 /**
  * As an agent I want to delete a Lead
@@ -93,8 +144,33 @@ Parse.Cloud.define('deleteLead', (req, res) => {
   leadQuery.get(req.params.lead)
     .then((lead) => {
       if (!lead) { return res.error(`Lead with ID ${req.params.lead} does not exist`); }
-      return lead.destroy();
+      const leadGroupQuery = new Parse.Query('LeadGroup');
+      leadGroupQuery.equalTo("leads", lead);
+      leadGroupQuery.find()
+        .then((groups) => {
+          groups.forEach((leadGroup) => {
+            leadGroup.remove("leads", lead);
+            leadGroup.save();
+          });
+        })
+        .then(() => {
+          lead.destroy();
+        })
+        .then(() => {
+          const agent = req.user;
+          agent.remove("leads", lead);
+          agent.save(null, { useMasterKey: true });
+        })
+        .then(() => {
+          const userQuery = new Parse.Query(Parse.User);
+          userQuery.include('agents');
+          userQuery.include('leads');
+          userQuery.include('leadGroups');
+          userQuery.find('objectId', req.user.id)
+            .then((r) => {
+              res.success(r);
+            });
+        });
     })
-    .then(obj => res.success(obj))
     .catch(err => res.error(err));
 });
