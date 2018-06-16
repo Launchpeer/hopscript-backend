@@ -7,32 +7,36 @@
 Parse.Cloud.define('createLead', (req, res) => {
   const { lead } = req.params;
   const Agent = req.user;
-  const Lead = Parse.Object.extend('Lead');
-  const LObj = new Lead();
+  const LObj = new Parse.Object('Lead');
   const formattedPhone = `+1${lead.phone}`;
-  LObj.set('name', lead.name);
-  LObj.set('phone', formattedPhone);
-  LObj.set('email', lead.email);
-  LObj.set('leadType', lead.leadType);
-  LObj.set('leadGroups', lead.leadGroup);
-  LObj.set('agent', Agent);
-  LObj.save().then((r) => {
-    res.success(r);
-  });
-
-  const groupQuery = new Parse.Query('LeadGroup');
-  groupQuery.get(lead.leadGroup)
+  // Get the leadGroup pointer object from Parse
+  const leadGroupQuery = new Parse.Query("LeadGroup");
+  leadGroupQuery.get(lead.leadGroup)
     .then((leadGroup) => {
-      leadGroup.addUnique("leads", lead);
-      leadGroup.save();
-    }).then((r) => {
-      res.success(r);
-    });
+      LObj.set('name', lead.name);
+      LObj.set('phone', formattedPhone);
+      LObj.set('email', lead.email);
+      LObj.set('leadType', lead.leadType);
+      LObj.addUnique('leadGroups', leadGroup);
+      LObj.set('agent', Agent);
+      LObj.save()
+        .then((newlySavedLead) => {
+          console.log("newlySavedLead", newlySavedLead.attributes);
+          leadGroup.addUnique("leads", newlySavedLead);
+          leadGroup.save()
+            .then(() => {
+              const userQuery = new Parse.Query('User');
+              userQuery.get(req.user.id, { useMasterKey: true })
+                .then((user) => {
+                  user.addUnique('leads', newlySavedLead);
+                  user.save(null, { useMasterKey: true })
+                    .then(r => res.success(r));
+                });
+            });
+        });
+    })
 
-  Agent.addUnique('lead', lead);
-  Agent.save().then((r) => {
-    res.success(r);
-  });
+    .catch(err => res.error(err));
 });
 
 
