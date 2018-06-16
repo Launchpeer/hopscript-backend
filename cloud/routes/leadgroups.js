@@ -26,11 +26,11 @@
  */
 
 Parse.Cloud.define('createLeadGroup', (req, res) => {
-  const { leadGroup } = req.params;
+  const { leadGroup, leadsToAdd } = req.params;
   const Agent = req.user;
   const LGObj = new Parse.Object('LeadGroup');
   const leadQuery = new Parse.Query("Lead");
-  LGObj.set('name', leadGroup.groupName);
+  LGObj.set('groupName', leadGroup.groupName);
   LGObj.set('agent', Agent);
   LGObj.save()
     .then((newlySavedLeadGroup) => {
@@ -40,22 +40,20 @@ Parse.Cloud.define('createLeadGroup', (req, res) => {
           user.addUnique('leadGroups', newlySavedLeadGroup);
           user.save(null, { useMasterKey: true })
             .then(() => {
-              leadGroup.leads.forEach((lead) => {
+              leadsToAdd.forEach((lead) => {
                 leadQuery.get(lead)
                   .then((fetchedLead) => {
                     newlySavedLeadGroup.addUnique('leads', fetchedLead);
-                    newlySavedLeadGroup.save()
-                      .then(() => {
-                        fetchedLead.set('leadGroups', newlySavedLeadGroup);
-                        fetchedLead.save()
-                          .then((r) => {
-                            res.success(r);
-                          });
-                      });
+                    fetchedLead.set('leadGroups', newlySavedLeadGroup);
+                    fetchedLead.save();
                   });
               });
             });
-        });
+        })
+        .then(() => {
+          newlySavedLeadGroup.save();
+        })
+        .then(r => res.succes(r));
     })
     .catch(err => res.error(err));
 });
