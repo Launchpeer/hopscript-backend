@@ -26,37 +26,78 @@
  *
  */
 
+function _fetchLeadGroup(leadGroup) {
+  return new Promise((resolve) => {
+    const leadGroupQuery = new Parse.Query("LeadGroup");
+    resolve(leadGroupQuery.get(leadGroup));
+  });
+}
+
+function _createNewLead(user, lead, leadGroup) {
+  return new Promise((resolve) => {
+    const Agent = user;
+    const LObj = new Parse.Object('Lead');
+    const formattedPhone = `+1${lead.phone}`;
+    LObj.set('name', lead.name);
+    LObj.set('phone', formattedPhone);
+    LObj.set('email', lead.email);
+    LObj.set('leadType', lead.leadType);
+    LObj.addUnique('leadGroups', leadGroup);
+    LObj.set('agent', Agent);
+    resolve(LObj.save());
+  });
+}
+
+const _reconcileLeadToLeadGroup = (lead, leadGroup) => new Promise((resolve) => {
+  leadGroup.addUnique("leads", lead);
+  resolve(leadGroup.save());
+});
+
+function _fetchUser(id) {
+  return new Promise((resolve) => {
+    const userQuery = new Parse.Query('User');
+    resolve(userQuery.get(id, { useMasterKey: true }));
+  });
+}
+
+function _reconcileLeadToUser(user, lead) {
+  return new Promise((resolve) => {
+    user.addUnique('leads', lead);
+    resolve(user.save(null, { useMasterKey: true }));
+  });
+}
+
 Parse.Cloud.define('createLead', (req, res) => {
   const { lead } = req.params;
-  const Agent = req.user;
-  const LObj = new Parse.Object('Lead');
-  const formattedPhone = `+1${lead.phone}`;
-  const leadGroupQuery = new Parse.Query("LeadGroup");
-  leadGroupQuery.get(lead.leadGroup)
+  _fetchLeadGroup(lead.leadGroup)
     .then((leadGroup) => {
-      LObj.set('name', lead.name);
-      LObj.set('phone', formattedPhone);
-      LObj.set('email', lead.email);
-      LObj.set('leadType', lead.leadType);
-      LObj.addUnique('leadGroups', leadGroup);
-      LObj.set('agent', Agent);
-      LObj.save()
+      _createNewLead(req.user, lead, leadGroup)
         .then((newlySavedLead) => {
-          leadGroup.addUnique("leads", newlySavedLead);
-          leadGroup.save()
+          _reconcileLeadToLeadGroup(newlySavedLead, leadGroup)
             .then(() => {
-              const userQuery = new Parse.Query('User');
-              userQuery.get(req.user.id, { useMasterKey: true })
+              _fetchUser(req.user.id)
                 .then((user) => {
-                  user.addUnique('leads', newlySavedLead);
-                  user.save(null, { useMasterKey: true })
-                    .then(r => res.success(r));
+                  _reconcileLeadToUser(user, newlySavedLead)
+                    .then(r => res.success(r))
+                    .catch((reconcileLeadToUserErr) => {
+                      res.error(reconcileLeadToUserErr);
+                    });
+                })
+                .catch((fetchUserErr) => {
+                  res.error(fetchUserErr);
                 });
+            })
+            .catch((reconcileLeadToLeadGroupErr) => {
+              res.error(reconcileLeadToLeadGroupErr);
             });
+        })
+        .catch((createNewLeadErr) => {
+          res.error(createNewLeadErr);
         });
     })
-
-    .catch(err => res.error(err));
+    .catch((fetchLeadGroupErr) => {
+      res.error(fetchLeadGroupErr);
+    });
 });
 
 
@@ -70,10 +111,14 @@ Parse.Cloud.define('createLead', (req, res) => {
  *
  */
 
-Parse.Cloud.define('fetchLead', (req, res) => {
+const _fetchLead = leadId => new Promise((resolve) => {
   const leadQuery = new Parse.Query('Lead');
   leadQuery.include('leadGroups');
-  leadQuery.get(req.params.lead)
+  resolve(leadQuery.get(leadId));
+});
+
+Parse.Cloud.define('fetchLead', (req, res) => {
+  _fetchLead(req.params.lead)
     .then(lead => res.success(lead))
     .catch(err => res.error(err));
 });
@@ -222,3 +267,5 @@ Parse.Cloud.define('deleteLead', (req, res) => {
     })
     .catch(err => res.error(err));
 });
+
+export { _fetchLead, _reconcileLeadToLeadGroup };

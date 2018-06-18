@@ -99,3 +99,10 @@ Parse.Cloud.afterDelete(Parse.User, (req, res) => {
     }
   }
 });
+
+const fetchUser = id => new Promise((resolve) => {
+  const userQuery = new Parse.Query('User');
+  resolve(userQuery.get(id, { useMasterKey: true }));
+});
+
+export { fetchUser };

@@ -1,3 +1,5 @@
+import { fetchUser } from '../main';
+import { _fetchLead, _reconcileLeadToLeadGroup } from './lead';
 /**
  * As an agent I want to create a LeadGroup.
  *
@@ -25,37 +27,63 @@
  *
  */
 
+function _createNewLeadGroup(user, groupName) {
+  return new Promise((resolve) => {
+    const LGObj = new Parse.Object('LeadGroup');
+    LGObj.set('groupName', groupName);
+    LGObj.set('agent', user);
+    resolve(LGObj.save());
+  });
+}
+
+function _reconcileLeadGroupToUser(user, leadGroup) {
+  return new Promise((resolve) => {
+    user.addUnique('leadGroups', leadGroup);
+    resolve(user.save(null, { useMasterKey: true }));
+  });
+}
+
+function _reconcileLeadGroupToLead(lead, leadGroup) {
+  return new Promise((resolve) => {
+    lead.addUnique('leadGroups', leadGroup);
+    resolve(lead.save());
+  });
+}
+
+function _fetchLeadAndReconcileToGroup(lead, leadGroup) {
+  return new Promise((resolve) => {
+    _fetchLead(lead.id)
+      .then((fetchedLead) => {
+        _reconcileLeadToLeadGroup(fetchedLead, leadGroup)
+          .then(() => {
+            _reconcileLeadGroupToLead(fetchedLead, leadGroup)
+              .then(() => {
+                resolve();
+              });
+          });
+      });
+  });
+}
+
 Parse.Cloud.define('createLeadGroup', (req, res) => {
   const { leadGroup, leadsToAdd } = req.params;
-  const Agent = req.user;
-  const LGObj = new Parse.Object('LeadGroup');
-  const leadQuery = new Parse.Query("Lead");
-  LGObj.set('groupName', leadGroup.groupName);
-  LGObj.set('agent', Agent);
-  LGObj.save()
+  _createNewLeadGroup(req.user, leadGroup.groupName)
     .then((newlySavedLeadGroup) => {
-      const userQuery = new Parse.Query('User');
-      userQuery.get(req.user.id, { useMasterKey: true })
+      fetchUser(req.user.id)
         .then((user) => {
-          user.addUnique('leadGroups', newlySavedLeadGroup);
-          user.save(null, { useMasterKey: true })
+          _reconcileLeadGroupToUser(user, newlySavedLeadGroup)
             .then(() => {
-              leadsToAdd.forEach((lead) => {
-                leadQuery.get(lead)
-                  .then((fetchedLead) => {
-                    newlySavedLeadGroup.addUnique('leads', fetchedLead);
-                    fetchedLead.set('leadGroups', newlySavedLeadGroup);
-                    fetchedLead.save();
-                  });
-              });
-            });
+              Promise.all(leadsToAdd.map(lead => _fetchLeadAndReconcileToGroup(lead, newlySavedLeadGroup)))
+                .then(() => {
+                  res.success('created Lead Group');
+                })
+                .catch(err => res.error(err));
+            })
+            .catch(reconcileLeadGroupToUserErr => res.error(reconcileLeadGroupToUserErr));
         })
-        .then(() => {
-          newlySavedLeadGroup.save();
-        })
-        .then(r => res.succes(r));
+        .catch(fetchUsererr => res.error(fetchUsererr));
     })
-    .catch(err => res.error(err));
+    .catch(createNewLeadGrouperr => res.error(createNewLeadGrouperr));
 });
 
 /**
