@@ -122,7 +122,7 @@ function _reconcileScriptToUser(script, userId) {
     query.get(userId, { useMasterKey: true })
       .then((user) => {
         user.add('scripts', script);
-        resolve(user.save());
+        resolve(user.save(null, { useMasterKey: true }));
       });
   });
 }
@@ -149,8 +149,8 @@ Parse.Cloud.define('createNewScript', (req, res) => {
   _createNewScript()
     .then((script) => {
       _reconcileScriptToUser(script, req.params.userId)
-        .then((user) => {
-          res.success(user);
+        .then(() => {
+          res.success(script);
         })
         .catch((err) => {
           res.error(err);
@@ -187,9 +187,9 @@ Parse.Cloud.define('createNewQuestion', (req, res) => {
 Parse.Cloud.define('updateScript', (req, res) => {
   const Script = Parse.Object.extend('Script');
   const query = new Parse.Query(Script);
-  query.get(req.scriptId)
+  query.get(req.params.scriptId, { useMasterKey: true })
     .then((script) => {
-      script.set('name', req.data.name);
+      script.set('name', req.params.data.name);
       script.save()
         .then((updatedScript) => {
           res.success(updatedScript);
@@ -200,6 +200,21 @@ Parse.Cloud.define('updateScript', (req, res) => {
     })
     .catch((err) => {
       res.error(err);
+    });
+});
+
+Parse.Cloud.define('createQuestion', (req, res) => {
+  const Question = Parse.Object.extend('Question');
+  const question = new Question();
+  Object.keys(req.params.question).forEach((key) => {
+    question.set(key, req.params.question[key]);
+  });
+  question.save()
+    .then(() => {
+      _fetchScript(req.params.scriptId)
+        .then((script) => {
+          res.success(script);
+        });
     });
 });
 
