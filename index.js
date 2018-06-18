@@ -69,14 +69,13 @@ const dashboard = new ParseDashboard(
   }
 );
 // server up parse api
-app.use(config.PARSE_SERVER_MOUNT, api)
-app.use('/dashboard', dashboard)
+app.use(config.PARSE_SERVER_MOUNT, api);
+app.use('/dashboard', dashboard);
 
 const httpServer = require('http').createServer(app);
 
 httpServer.listen(PORT, () => {
-  console.log(`parse server running on ${PORT}`)
-  console.log('sup')
-})
+  console.log(`parse server running on ${PORT}`);
+});
 
 const parseLiveQuery = ParseServer.createLiveQueryServer(httpServer);

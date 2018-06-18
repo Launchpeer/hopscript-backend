@@ -6,28 +6,28 @@ function _incrementScriptUpdate(scriptId) {
     const Script = Parse.Object.extend('Script');
     const query = new Parse.Query(Script);
     query.get(scriptId)
-      .then(script => {
+      .then((script) => {
         script.increment('updates');
-        resolve(script.save())
+        resolve(script.save());
       })
-      .catch(err => {
+      .catch((err) => {
         console.log('increment scriptupdate', err);
-      })
-  })
+      });
+  });
 }
 
 function _createNewQuestion({ body, category, audio }) {
   return new Promise((resolve) => {
-    const questionClass = Parse.Object.extend('Question');
-    const Question = new questionClass;
-    if(body) { Question.set('body', body); }
-    if(category) { Question.set('category', category); }
+    const Question = Parse.Object.extend('Question');
+    const question = new Question();
+    if (body) { question.set('body', body); }
+    if (category) { question.set('category', category); }
     if (audio) {
       console.log('deal with audio', audio);
-      // Question.set('audio', audio);
+      // question.set('audio', audio);
     }
-    resolve(Question.save());
-  })
+    resolve(question.save());
+  });
 }
 
 function _reconcileQuestionToScript(question, scriptId) {
@@ -38,8 +38,8 @@ function _reconcileQuestionToScript(question, scriptId) {
       .then((script) => {
         script.add('questions', question);
         resolve(script.save());
-      })
-  })
+      });
+  });
 }
 
 function _fetchQuestion(questionId) {
@@ -48,7 +48,7 @@ function _fetchQuestion(questionId) {
     const Question = Parse.Object.extend('Question');
     const query = new Parse.Query(Question);
     resolve(query.get(questionId));
-  })
+  });
 }
 
 /**
@@ -60,9 +60,8 @@ function _fetchQuestion(questionId) {
 
 function _createNewAnswer({ body, route }) {
   return new Promise((resolve) => {
-    console.log('route', route);
     const answerClass = Parse.Object.extend('Answer');
-    const Answer = new answerClass;
+    const Answer = new answerClass();
     Answer.set('body', body);
     _fetchQuestion(route)
       .then((question) => {
@@ -71,9 +70,8 @@ function _createNewAnswer({ body, route }) {
       })
       .catch((err) => {
         console.log('_fetchQuestion err', err);
-      })
-
-  })
+      });
+  });
 }
 
 /**
@@ -87,7 +85,6 @@ function _createNewAnswer({ body, route }) {
 
 function addAnswertoQuestion(answer, questionId) {
   return new Promise((resolve) => {
-    console.log('questionId', questionId)
     const Question = Parse.Object.extend('Question');
     const query = new Parse.Query(Question);
     query.get(questionId)
@@ -95,8 +92,8 @@ function addAnswertoQuestion(answer, questionId) {
         console.log('question', question);
         question.add('answers', answer);
         resolve(question.save());
-      })
-  })
+      });
+  });
 }
 
 function _fetchScript(scriptId) {
@@ -106,19 +103,18 @@ function _fetchScript(scriptId) {
     query.include('questions');
     query.include('questions.answers');
     resolve(query.get(scriptId));
-  })
+  });
 }
 
 Parse.Cloud.define('fetchScript', (req, res) => {
   _fetchScript(req.params.scriptId)
-    .then(script => {
+    .then((script) => {
       res.success(script);
     })
-    .catch(err => {
+    .catch((err) => {
       res.error(err);
-    })
-
-})
+    });
+});
 
 function _reconcileScriptToUser(script, userId) {
   return new Promise((resolve) => {
@@ -127,8 +123,16 @@ function _reconcileScriptToUser(script, userId) {
       .then((user) => {
         user.add('scripts', script);
         resolve(user.save());
-      })
-  })
+      });
+  });
+}
+
+function _createNewScript() {
+  return new Promise((resolve) => {
+    const Script = Parse.Object.extend('Script');
+    const script = new Script();
+    resolve(script.save());
+  });
 }
 
 /**
@@ -141,23 +145,21 @@ function _reconcileScriptToUser(script, userId) {
  */
 
 
-
-
 Parse.Cloud.define('createNewScript', (req, res) => {
   _createNewScript()
-    .then(script => {
+    .then((script) => {
       _reconcileScriptToUser(script, req.params.userId)
         .then((user) => {
           res.success(user);
         })
         .catch((err) => {
           res.error(err);
-        })
+        });
     })
-    .catch(err => {
+    .catch((err) => {
       res.error(err);
-    })
-})
+    });
+});
 
 /**
  * As an agent, I want to create a new Question
@@ -170,36 +172,36 @@ Parse.Cloud.define('createNewScript', (req, res) => {
 
 Parse.Cloud.define('createNewQuestion', (req, res) => {
   _createNewQuestion(req.params.question)
-    .then(question => {
+    .then((question) => {
       _reconcileQuestionToScript(question, req.params.scriptId)
-        .then(script => {
+        .then((script) => {
           res.success(script);
         })
-        .catch(err => {
+        .catch((err) => {
           res.error(err);
-        })
-    })
-})
+        });
+    });
+});
 
 
 Parse.Cloud.define('updateScript', (req, res) => {
   const Script = Parse.Object.extend('Script');
   const query = new Parse.Query(Script);
   query.get(req.scriptId)
-    .then(script => {
+    .then((script) => {
       script.set('name', req.data.name);
       script.save()
-        .then(updatedScript => {
+        .then((updatedScript) => {
           res.success(updatedScript);
         })
-        .catch(err => {
+        .catch((err) => {
           res.error(err);
-        })
+        });
     })
-    .catch(err => {
-      res.error(err)
-    })
-})
+    .catch((err) => {
+      res.error(err);
+    });
+});
 
 /**
  * As an agent, I want to update a Question
@@ -212,10 +214,10 @@ Parse.Cloud.define('updateScript', (req, res) => {
 
 Parse.Cloud.define('updateQuestion', (req, res) => {
   _fetchQuestion(req.params.questionId)
-    .then(question => {
+    .then((question) => {
       Object.keys(req.params.question).forEach((key) => {
-        question.set(key, req.params.question[key])
-      })
+        question.set(key, req.params.question[key]);
+      });
       question.save()
         .then(() => {
           _incrementScriptUpdate(req.params.scriptId)
@@ -225,14 +227,14 @@ Parse.Cloud.define('updateQuestion', (req, res) => {
             .catch((err) => {
               console.log('increment err', err);
               res.error(err);
-            })
-        })
+            });
+        });
     })
-    .catch(err => {
+    .catch((err) => {
       console.log('fetch question err', err);
-      res.error(err)
-    })
-})
+      res.error(err);
+    });
+});
 
 /**
  * As an agent, I want to add an Answer to my Script Question
@@ -247,41 +249,41 @@ function _createAndReconcileAnswer(answer, questionId) {
   return new Promise((resolve) => {
     _createNewAnswer(answer)
       .then((parseAnswer) => {
-        console.log('_createAndReconcileAnswer', parseAnswer)
+        console.log('_createAndReconcileAnswer', parseAnswer);
         addAnswertoQuestion(parseAnswer, questionId)
           .then((question) => {
             resolve(question);
           })
           .catch((err) => {
             console.log('reconcileAnswerToQuestion', err);
-          })
+          });
       })
       .catch((err) => {
         console.log('createNewAnswer err', err);
-      })
-  })
+      });
+  });
 }
 Parse.Cloud.define('createNewAnswer', (req, res) => {
   _createAndReconcileAnswer(req.params.answer, req.params.questionId)
-    .then(question => {
+    .then((question) => {
       res.success(question);
     })
-    .catch(err => {
+    .catch((err) => {
       res.error(err);
     });
-})
+});
 
 function _formatAnswerData(data) {
   const keys = Object.keys(data);
   const values = Object.values(data);
-  return keys.map(k => {
+  return keys.map((k) => {
     if (k.startsWith('answer')) {
       return {
         body: values[keys.indexOf(k)],
         route: values[keys.indexOf(k) + 1]
-      }
+      };
     }
-  }).filter((j) => { if(j) { return j} })
+  }).filter((j) => { if (j) { return j; } });
 }
 
 /**
@@ -300,41 +302,41 @@ function _formatAnswerData(data) {
 
 Parse.Cloud.define('addAnswers', (req, res) => {
   Promise.all(_formatAnswerData(req.params.data)
-    .map((answer) => { return _createAndReconcileAnswer(answer, req.params.questionId)}))
-      .then(() => {
-        _fetchScript(req.params.scriptId)
-          .then((script) => {
-            res.success(script);
-          })
-          .catch((err) => {
-            res.error(err);
-          })
-      })
-      .catch(err => res.error(err));
-})
+    .map(answer => _createAndReconcileAnswer(answer, req.params.questionId)))
+    .then(() => {
+      _fetchScript(req.params.scriptId)
+        .then((script) => {
+          res.success(script);
+        })
+        .catch((err) => {
+          res.error(err);
+        });
+    })
+    .catch(err => res.error(err));
+});
 
 function _fetchAnswer(answerId) {
   return new Promise((resolve) => {
     const Answer = Parse.Object.extend('Answer');
     const query = new Parse.Query(Answer);
     resolve(query.get(answerId));
-  })
+  });
 }
 
 function _deleteAnswer(answer) {
   return new Promise((resolve) => {
     resolve(answer.destroy({ useMasterKey: true }));
-  })
+  });
 }
 
 function _dissociateAnswerFromQuestion(answer, questionId) {
   return new Promise((resolve) => {
     _fetchQuestion(questionId)
       .then((question) => {
-        question.remove("answers", answer)
+        question.remove("answers", answer);
         resolve(question.save());
-      })
-  })
+      });
+  });
 }
 
 function _deleteAndDissociateAnswer(answerId, scriptId, questionId) {
@@ -346,10 +348,10 @@ function _deleteAndDissociateAnswer(answerId, scriptId, questionId) {
           _dissociateAnswerFromQuestion(answer, questionId)
         ])
           .then(() => {
-            resolve(_fetchScript(scriptId))
-          })
-      })
-  })
+            resolve(_fetchScript(scriptId));
+          });
+      });
+  });
 }
 
 Parse.Cloud.define('deleteAnswer', (req, res) => {
@@ -359,5 +361,5 @@ Parse.Cloud.define('deleteAnswer', (req, res) => {
     })
     .catch((err) => {
       res.error('_dissociateAnswerFromQuestion ERR:', err);
-    })
-})
+    });
+});
