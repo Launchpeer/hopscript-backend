@@ -4,4 +4,4 @@ module.exports = {
   scripts: require('./scripts'),
   lead: require('./lead'),
   leadgroups: require('./leadgroups')
-}
+};
