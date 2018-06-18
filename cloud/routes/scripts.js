@@ -60,13 +60,13 @@ function _fetchQuestion(questionId) {
 
 function _createNewAnswer({ body, route }) {
   return new Promise((resolve) => {
-    const answerClass = Parse.Object.extend('Answer');
-    const Answer = new answerClass();
-    Answer.set('body', body);
+    const Answer = Parse.Object.extend('Answer');
+    const answer = new Answer();
+    answer.set('body', body);
     _fetchQuestion(route)
       .then((question) => {
-        Answer.set('route', question);
-        resolve(Answer.save());
+        answer.set('route', question);
+        resolve(answer.save());
       })
       .catch((err) => {
         console.log('_fetchQuestion err', err);

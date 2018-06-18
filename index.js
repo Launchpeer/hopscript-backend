@@ -19,6 +19,12 @@ require('dotenv').config();
  * Parse server options
  */
 const options = {
+  loggerAdapter: {
+    module: "parse-server/lib/Adapters/Logger/WinstonLoggerAdapter",
+    options: {
+      logLevel: config.DEBUG ? "info" : "error"
+    }
+  },
   appName: config.PARSE_DASHBOARD_APP_NAME,
   emailAdapter: sendgrid({
     apiKey: config.SENDGRID_API_KEY,
