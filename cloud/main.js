@@ -105,4 +105,7 @@ const fetchUser = id => new Promise((resolve) => {
   resolve(userQuery.get(id, { useMasterKey: true }));
 });
 
-export { fetchUser };
+
+module.exports = {
+  fetchUser
+};
