@@ -1,3 +1,10 @@
+function _fetchUser(id) {
+  return new Promise((resolve) => {
+    const userQuery = new Parse.Query('User');
+    resolve(userQuery.get(id, { useMasterKey: true }));
+  });
+}
+
 /**
  * As an agent I want to create a Lead.
  *
@@ -52,13 +59,6 @@ const _reconcileLeadToLeadGroup = (lead, leadGroup) => new Promise((resolve) => 
   leadGroup.addUnique("leads", lead);
   resolve(leadGroup.save());
 });
-
-function _fetchUser(id) {
-  return new Promise((resolve) => {
-    const userQuery = new Parse.Query('User');
-    resolve(userQuery.get(id, { useMasterKey: true }));
-  });
-}
 
 function _reconcileLeadToUser(user, lead) {
   return new Promise((resolve) => {

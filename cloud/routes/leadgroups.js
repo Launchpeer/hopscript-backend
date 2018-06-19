@@ -1,5 +1,13 @@
-import { fetchUser } from '../main';
 import { _fetchLead, _reconcileLeadToLeadGroup } from './lead';
+
+
+function _fetchUser(id) {
+  return new Promise((resolve) => {
+    const userQuery = new Parse.Query('User');
+    resolve(userQuery.get(id, { useMasterKey: true }));
+  });
+}
+
 /**
  * As an agent I want to create a LeadGroup.
  *
@@ -69,7 +77,7 @@ Parse.Cloud.define('createLeadGroup', (req, res) => {
   const { leadGroup, leadsToAdd } = req.params;
   _createNewLeadGroup(req.user, leadGroup.groupName)
     .then((newlySavedLeadGroup) => {
-      fetchUser(req.user.id)
+      _fetchUser(req.user.id)
         .then((user) => {
           _reconcileLeadGroupToUser(user, newlySavedLeadGroup)
             .then(() => {
