@@ -1,13 +1,5 @@
-import { _fetchLead, _reconcileLeadToLeadGroup } from './lead';
-
-
-function _fetchUser(id) {
-  return new Promise((resolve) => {
-    const userQuery = new Parse.Query('User');
-    resolve(userQuery.get(id, { useMasterKey: true }));
-  });
-}
-
+const { fetchUser } = require('../main');
+const { _fetchLead, _reconcileLeadToLeadGroup } = require('./lead');
 /**
  * As an agent I want to create a LeadGroup.
  *

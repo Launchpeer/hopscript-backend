@@ -268,4 +268,7 @@ Parse.Cloud.define('deleteLead', (req, res) => {
     .catch(err => res.error(err));
 });
 
-export { _fetchLead, _reconcileLeadToLeadGroup };
+module.exports = {
+  _fetchLead,
+  _reconcileLeadToLeadGroup
+};
