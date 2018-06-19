@@ -1,5 +1,5 @@
-import { fetchUser } from '../main';
-import { _fetchLead, _reconcileLeadToLeadGroup } from './lead';
+const { fetchUser } = require('../main');
+const { _fetchLead, _reconcileLeadToLeadGroup } = require('./lead');
 /**
  * As an agent I want to create a LeadGroup.
  *
