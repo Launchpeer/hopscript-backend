@@ -30,7 +30,7 @@ const options = {
     apiKey: config.SENDGRID_API_KEY,
     fromAddress: config.SENDGRID_FROM_EMAIL
   }),
-  cloud: `${__dirname}/cloud/main.js`,
+  cloud: `${__dirname}/cloud/`,
   databaseURI: config.MONGODB_URI,
   appId: config.PARSE_APP_ID,
   masterKey: config.PARSE_MASTER_KEY,
