@@ -43,8 +43,10 @@ function _createNewLead(user, lead, leadGroup) {
 
 // adds a lead to a leadgroup object
 const reconcileLeadToLeadGroup = (lead, leadGroup) => new Promise((resolve) => {
-  leadGroup.addUnique("leads", lead);
-  resolve(leadGroup.save());
+  fetchLeadGroup(leadGroup).then((fetchedLeadGroup) => {
+    fetchedLeadGroup.addUnique("leads", lead);
+    resolve(fetchedLeadGroup.save());
+  });
 });
 
 // adds a lead to a user object
@@ -134,7 +136,6 @@ Parse.Cloud.define('fetchLeads', (req, res) => {
   fetchLeads(req.user)
     .then(leads => res.success(leads))
     .catch((err) => {
-      console.log("Booboo", err);
       res.error(err);
     });
 });
@@ -158,14 +159,14 @@ Parse.Cloud.define('fetchLeads', (req, res) => {
 
 
 // updates the lead
-function _updateLead(lead) {
+function _updateLead(lead, data) {
   return new Promise((resolve) => {
-    Object.keys(lead).forEach((key) => {
+    Object.keys(data).forEach((key) => {
       if (key === 'leadGroup') {
-        reconcileLeadToLeadGroup(lead, lead.leadGroup)
-          .then(() => reconcileLeadGroupToLead(lead, lead.leadGroup));
+        reconcileLeadToLeadGroup(lead, data.leadGroup)
+          .then(() => reconcileLeadGroupToLead(lead, data.leadGroup));
       } else {
-        lead.set(key, lead[key]);
+        lead.set(key, data[key]);
       }
     });
     resolve(lead.save());
@@ -176,7 +177,7 @@ function _updateLead(lead) {
 Parse.Cloud.define('updateLead', (req, res) => {
   fetchLead(req.params.lead)
     .then((lead) => {
-      _updateLead(lead)
+      _updateLead(lead, req.params)
         .then((r) => {
           res.success(r);
         })

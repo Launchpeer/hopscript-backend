@@ -42,8 +42,11 @@ function _reconcileLeadGroupToUser(user, leadGroup) {
 
 // adds leadgroup to lead object
 const reconcileLeadGroupToLead = (lead, leadGroup) => new Promise((resolve) => {
-  lead.addUnique('leadGroups', leadGroup);
-  resolve(lead.save());
+  fetchLeadGroup(leadGroup)
+    .then((fetchedLeadGroup) => {
+      lead.addUnique('leadGroups', fetchedLeadGroup);
+      resolve(lead.save());
+    });
 });
 
 // reconciles lead to group, and group to lead
