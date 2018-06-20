@@ -103,7 +103,7 @@ Parse.Cloud.define('createLead', (req, res) => {
  */
 
 // fetches a lead & the leadgroups associated with it
-const fetchLead = leadId => new Promise((resolve) => {
+const _fetchLead = leadId => new Promise((resolve) => {
   const leadQuery = new Parse.Query('Lead');
   leadQuery.include('leadGroups');
   resolve(leadQuery.get(leadId));
@@ -111,7 +111,7 @@ const fetchLead = leadId => new Promise((resolve) => {
 
 
 Parse.Cloud.define('fetchLead', (req, res) => {
-  fetchLead(req.params.lead)
+  _fetchLead(req.params.lead)
     .then(lead => res.success(lead))
     .catch(err => res.error(err));
 });
@@ -175,7 +175,7 @@ function _updateLead(lead, data) {
 
 
 Parse.Cloud.define('updateLead', (req, res) => {
-  fetchLead(req.params.lead)
+  _fetchLead(req.params.lead)
     .then((lead) => {
       _updateLead(lead, req.params)
         .then((r) => {
@@ -219,7 +219,7 @@ const removeLeadGroupFromLead = (lead, leadGroup) => new Promise((resolve) => {
 
 
 Parse.Cloud.define('removeGroupFromLead', (req, res) => {
-  fetchLead(req.params.lead)
+  _fetchLead(req.params.lead)
     .then((lead) => {
       fetchLeadGroup(req.params.leadGroup)
         .then((leadGroup) => {
@@ -289,7 +289,7 @@ function _deleteLead(lead) {
 
 
 Parse.Cloud.define('deleteLead', (req, res) => {
-  fetchLead(req.params.lead)
+  _fetchLead(req.params.lead)
     .then((lead) => {
       if (!lead) { return res.error(`Lead with ID ${req.params.lead} does not exist`); }
       _removeLeadFromGroups(lead)
@@ -310,7 +310,7 @@ Parse.Cloud.define('deleteLead', (req, res) => {
 
 
 module.exports = {
-  fetchLead,
+  _fetchLead,
   reconcileLeadToLeadGroup,
   removeLeadGroupFromLead
 };

@@ -1,5 +1,20 @@
 const { fetchUser } = require('../main');
-const { fetchLead, reconcileLeadToLeadGroup, removeLeadGroupFromLead } = require('./lead');
+const { removeLeadGroupFromLead } = require('./lead');
+
+const _fetchLead = leadId => new Promise((resolve) => {
+  console.log('lead ID in fetchlead');
+  const leadQuery = new Parse.Query('Lead');
+  leadQuery.include('leadGroups');
+  resolve(leadQuery.get(leadId));
+});
+
+const reconcileLeadToLeadGroup = (lead, leadGroup) => new Promise((resolve) => {
+  fetchLeadGroup(leadGroup).then((fetchedLeadGroup) => {
+    fetchedLeadGroup.addUnique("leads", lead);
+    resolve(fetchedLeadGroup.save());
+  });
+});
+
 
 /**
  * As an agent I want to create a LeadGroup.
@@ -52,7 +67,7 @@ const reconcileLeadGroupToLead = (lead, leadGroup) => new Promise((resolve) => {
 // reconciles lead to group, and group to lead
 function _fetchLeadAndReconcileToGroup(lead, leadGroup) {
   return new Promise((resolve) => {
-    fetchLead(lead)
+    _fetchLead(lead)
       .then((fetchedLead) => {
         reconcileLeadToLeadGroup(fetchedLead, leadGroup)
           .then(() => {
@@ -74,7 +89,7 @@ Parse.Cloud.define('createLeadGroup', (req, res) => {
         .then((user) => {
           _reconcileLeadGroupToUser(user, newlySavedLeadGroup)
             .then(() => {
-              Promise.all(leadsToAdd.map(lead => _fetchLeadAndReconcileToGroup(lead, newlySavedLeadGroup)))
+              Promise.all(leadsToAdd.map(lead => _fetchLeadAndReconcileToGroup(lead, newlySavedLeadGroup.id)))
                 .then(() => {
                   res.success('created Lead Group');
                 })
