@@ -288,6 +288,7 @@ Parse.Cloud.define('createNewAnswer', (req, res) => {
     });
 });
 
+
 function _formatAnswerData(data) {
   const keys = Object.keys(data);
   const values = Object.values(data);
@@ -300,6 +301,7 @@ function _formatAnswerData(data) {
     }
   }).filter((j) => { if (j) { return j; } });
 }
+
 
 /**
  * As an agent, I want to add an Answer to my Script Questions
@@ -314,6 +316,7 @@ function _formatAnswerData(data) {
  * @param  {string} questionId Parse objectId for the Question
  * @param  {string} scriptId Parse objectId for the Script
 */
+
 
 Parse.Cloud.define('addAnswers', (req, res) => {
   Promise.all(_formatAnswerData(req.params.data)

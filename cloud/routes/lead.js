@@ -1,38 +1,31 @@
+const { fetchUser } = require('../main');
+const { fetchLeadGroup, reconcileLeadGroupToLead } = require('./leadgroups');
+
 /**
  * As an agent I want to create a Lead.
  *
- * On Submit of the create lead form, a Lead object is passed to this function as req.params.lead.
- * The object contains a name, phone, email, leadType, and leadGroup.
- * We also have access to the user (Agent) off of req.user.
+ * We take in a lead object and the user object off of the request object.
  *
- * First we destructure Lead off of req.params, destructure Agent off of req.user,
- * establish a new Lead object, and set up formatting for the phone number to work with Twilio's API.
+ * We run _fetchLeadGroup, giving it the leadGroup off of the lead object.
  *
- * Then, we query for the LeadGroup that the lead has been assigned to (lead.leadGroup is the leadgroup's ID).
- * Once we have the leadgroup, we start setting items on the Lead object. We have to use "addUnique"
- * on the leadGroup so that it is passed in as one pointer in what will be an array of pointers.
- * We save the Lead object.
+ * Then we run _createNewLead, giving it the user, the lead, and the leadGroup.
+ * This creates the leadGroup object, sets the name, email, phone, leadType, leadGroup, and agent.
+ * Then we save the new lead.
  *
- * Then, we take the newly saved lead, and add it as a pointer in an array of pointers on the LeadGroup.
- * We save the LeadGroup.
+ * We take the new lead and run _reconcileLeadToLeadGroup, adding the lead as a pointer on the leadGroup.
+ * We save the leadGroup.
  *
- * Then, we query for the user making the request using req.user.id, using useMasterKey.
- * We add the newly saved lead as a pointer in an array of pointers on the User.
- * We save the user, using useMasterKey.
+ * We then fetch the user and run _reconcicleLeadToUser, passing it the user and the newly saved lead.
+ * This sets the lead as a pointer on the User object, and saves the user object.
  *
- *  Loading and Errors are handled for UX.
+ * We then send the success message. Loading and Errors are handled for UX.
  *
- * @param  {object} lead An object representing the lead, including a name, phone, email, leadType, and leadGroup
+ *  @param  {object} lead An object representing the lead, including a name, phone, email, leadType, and leadGroup
  *
  */
 
-function _fetchLeadGroup(leadGroup) {
-  return new Promise((resolve) => {
-    const leadGroupQuery = new Parse.Query("LeadGroup");
-    resolve(leadGroupQuery.get(leadGroup));
-  });
-}
 
+// creates new lead object
 function _createNewLead(user, lead, leadGroup) {
   return new Promise((resolve) => {
     const Agent = user;
@@ -48,18 +41,13 @@ function _createNewLead(user, lead, leadGroup) {
   });
 }
 
-const _reconcileLeadToLeadGroup = (lead, leadGroup) => new Promise((resolve) => {
+// adds a lead to a leadgroup object
+const reconcileLeadToLeadGroup = (lead, leadGroup) => new Promise((resolve) => {
   leadGroup.addUnique("leads", lead);
   resolve(leadGroup.save());
 });
 
-function _fetchUser(id) {
-  return new Promise((resolve) => {
-    const userQuery = new Parse.Query('User');
-    resolve(userQuery.get(id, { useMasterKey: true }));
-  });
-}
-
+// adds a lead to a user object
 function _reconcileLeadToUser(user, lead) {
   return new Promise((resolve) => {
     user.addUnique('leads', lead);
@@ -67,15 +55,16 @@ function _reconcileLeadToUser(user, lead) {
   });
 }
 
+
 Parse.Cloud.define('createLead', (req, res) => {
   const { lead } = req.params;
-  _fetchLeadGroup(lead.leadGroup)
+  fetchLeadGroup(lead.leadGroup)
     .then((leadGroup) => {
       _createNewLead(req.user, lead, leadGroup)
         .then((newlySavedLead) => {
-          _reconcileLeadToLeadGroup(newlySavedLead, leadGroup)
+          reconcileLeadToLeadGroup(newlySavedLead, leadGroup)
             .then(() => {
-              _fetchUser(req.user.id)
+              fetchUser(req.user.id)
                 .then((user) => {
                   _reconcileLeadToUser(user, newlySavedLead)
                     .then(r => res.success(r))
@@ -111,14 +100,16 @@ Parse.Cloud.define('createLead', (req, res) => {
  *
  */
 
-const _fetchLead = leadId => new Promise((resolve) => {
+// fetches a lead & the leadgroups associated with it
+const fetchLead = leadId => new Promise((resolve) => {
   const leadQuery = new Parse.Query('Lead');
   leadQuery.include('leadGroups');
   resolve(leadQuery.get(leadId));
 });
 
+
 Parse.Cloud.define('fetchLead', (req, res) => {
-  _fetchLead(req.params.lead)
+  fetchLead(req.params.lead)
     .then(lead => res.success(lead))
     .catch(err => res.error(err));
 });
@@ -131,144 +122,194 @@ Parse.Cloud.define('fetchLead', (req, res) => {
  *@param  {object} user An object representing the user, including their leads
  *
  */
+
+// fetches all leads associated with the user querying
+const fetchLeads = user => new Promise((resolve) => {
+  const leadQuery = new Parse.Query("Lead");
+  leadQuery.equalTo('agent', user);
+  resolve(leadQuery.find(null, { userMasterKey: true }));
+});
+
 Parse.Cloud.define('fetchLeads', (req, res) => {
-  const leadsQuery = new Parse.Query('Lead');
-  leadsQuery.equalTo('agent', req.user);
-  leadsQuery.find()
+  fetchLeads(req.user)
     .then(leads => res.success(leads))
-    .catch(err => res.error(err));
+    .catch((err) => {
+      console.log("Booboo", err);
+      res.error(err);
+    });
 });
 
 /**
  * As an agent I want to update a Lead
  *
- * We query the database for Leads, using the Lead's id.
+ * First we use _fetchLead to fetch the lead we want to update.
  *
- * If found, we check to see what is being updated, and set that update.
+ * Then we run _updateLead on the lead. This will check to see what is being modified.
+ * If it is a leadgroup, we run _reconcileLeadToLeadGroup, which adds the lead as a pointer on the leadGroup,
+ * and then saves the leadGroup. Then we run _reconcileLeadGroupTolead, which adds the leadGroup as a pointer on
+ * the lead and saves the lead.
  *
- * If the update is to add the Lead to a LeadGroup, we query for the
- * LeadGroup, and use addUnique to add the Lead to the array of pointers on the
- * LeadGroup.  We add the LeadGroup to the array of pointers on the Lead.
- * We save the LeadGroup.
+ * If what is being modified isn't a leadGroup, _updateLead sets the lead with the updated item.
  *
- * Then we save the Lead.
+ * We then send the success message. Loading and Errors are handled for UX.
  *
  * @param  {object} lead An object representing the lead, including an id, name, phone, email, leadType, and leadGroup
  */
 
+
+// updates the lead
+function _updateLead(lead) {
+  return new Promise((resolve) => {
+    Object.keys(lead).forEach((key) => {
+      if (key === 'leadGroup') {
+        reconcileLeadToLeadGroup(lead, lead.leadGroup)
+          .then(() => reconcileLeadGroupToLead(lead, lead.leadGroup));
+      } else {
+        lead.set(key, lead[key]);
+      }
+    });
+    resolve(lead.save());
+  });
+}
+
+
 Parse.Cloud.define('updateLead', (req, res) => {
-  const leadQuery = new Parse.Query('Lead');
-  leadQuery.get(req.params.lead)
+  fetchLead(req.params.lead)
     .then((lead) => {
-      Object.keys(req.params).forEach((key) => {
-        if (key === 'leadGroup') {
-          const groupQuery = new Parse.Query('LeadGroup');
-          groupQuery.get(req.params.leadGroup)
-            .then((leadGroup) => {
-              lead.addUnique("leadGroups", leadGroup);
-              leadGroup.addUnique("leads", lead);
-              leadGroup.save();
-            });
-        } else {
-          lead.set(key, req.params[key]);
-        }
-      });
-      lead.save()
+      _updateLead(lead)
         .then((r) => {
           res.success(r);
-        });
+        })
+        .catch(updateLeadErr => res.error(updateLeadErr));
     })
-    .catch(err => res.error(err));
+    .catch(fetchLeadErr => res.error(fetchLeadErr));
 });
 
 /**
  * As an agent I want to remove a LeadGroup from a Lead
  *
- * We query the database for Leads, using the Lead's id.
- * If found, we query for the LeadGroup, and use remove
- * to remove the Lead to the array of pointers on the
- * LeadGroup, and remove the LeadGroup to the array of pointers on the Lead.
- * Then we save the LeadGroup.
- * Then we save the Lead.
+ * We fetch the Lead, and then we fetch the LeadGroup.
+ *
+ * We run _removeLeadFromLeadGroup, removing the lead from the array of lead pointers on the leadGroup.
+ * We save the leadGroup.
+ *
+ * We run _removeLeadGroupFromLead, removing the leadGroup from the array of leadGroup pointers on the lead.
+ * We save the lead.
+ *
+ * We then send the success message. Loading and Errors are handled for UX.
  *
  * @param  {object} lead An object representing the lead, including an id, name, phone, email, leadType, and leadGroup
  *
  */
 
+// removes a lead from a leadgroup
+function _removeLeadFromLeadGroup(lead, leadGroup) {
+  return new Promise((resolve) => {
+    leadGroup.remove("leads", lead);
+    resolve(leadGroup.save);
+  });
+}
+
+// removes a leadgroup from a lead
+const removeLeadGroupFromLead = (lead, leadGroup) => new Promise((resolve) => {
+  lead.remove("leadGroups", leadGroup);
+  resolve(lead.save);
+});
+
+
 Parse.Cloud.define('removeGroupFromLead', (req, res) => {
-  const leadQuery = new Parse.Query('Lead');
-  leadQuery.get(req.params.lead)
+  fetchLead(req.params.lead)
     .then((lead) => {
-      const groupQuery = new Parse.Query('LeadGroup');
-      groupQuery.get(req.params.leadGroup)
+      fetchLeadGroup(req.params.leadGroup)
         .then((leadGroup) => {
-          leadGroup.remove("leads", lead);
-          lead.remove("leadGroups", leadGroup);
-          leadGroup.save();
-          lead.save()
-            .then(r => res.success(r));
-        });
+          _removeLeadFromLeadGroup(lead, leadGroup)
+            .then(() => removeLeadGroupFromLead(lead, leadGroup)
+              .then(r => res.success(r)))
+            .catch(removeError => res.error(removeError));
+        }).catch(fetchLeadGroupErr => res.error(fetchLeadGroupErr));
     })
-    .catch(err => res.error(err));
+    .catch(fetchLeadErr => res.error(fetchLeadErr));
 });
 
 
 /**
  * As an agent I want to delete a Lead.
- * We query the database for Lead.
+ * We fetch the Lead.
  *
- * If found, we query for leadGroups who have that lead in their array of leads.
- * We then remove the Lead from each LeadGroup it is associated with.
- * We save the LeadGroup.
+ * We then run _removeLeadFromGroups, querying for the leadgroups the lead is in and removing
+ * it from each leadgroups' array of lead pointers and saving the leadgroups.
  *
- * Then we remove the lead from the database.
+ * We then delete the lead.
  *
- * Then we remove the lead from the Agent's array of leads.
- * Then we save the Agent.
- * We then query for the newly saved Agent and send it back with the success response.
+ * We then run _removeLeadFromAgent, removing the lead from the Agent's array of lead pointers and saving the agent.
  *
+ * We then send the success message. Loading and Errors are handled for UX.
  *
  * @param  {object} lead An object representing the lead, including an id, name, phone, email, leadType, and leadGroup
  *
  */
 
+// fetches all the leadgroups associated with a lead
+function _fetchLeadGroupsOnLead(lead) {
+  return new Promise((resolve) => {
+    const leadGroupQuery = new Parse.Query('LeadGroup');
+    leadGroupQuery.equalTo("leads", lead);
+    resolve(leadGroupQuery.find());
+  });
+}
+
+// removes a lead from all groups its associated with
+function _removeLeadFromGroups(lead) {
+  return new Promise((resolve) => {
+    _fetchLeadGroupsOnLead(lead)
+      .then((groups) => {
+        groups.forEach((leadGroup) => {
+          _removeLeadFromLeadGroup(lead, leadGroup);
+        });
+      });
+    resolve();
+  });
+}
+
+// removes a lead from an agent
+function _removeLeadFromAgent(lead, user) {
+  return new Promise((resolve) => {
+    user.remove('leads', lead);
+    resolve(user.save(null, { useMasterKey: true }));
+  });
+}
+
+// deletes a lead
+function _deleteLead(lead) {
+  return new Promise((resolve) => {
+    resolve(lead.destroy());
+  });
+}
+
+
 Parse.Cloud.define('deleteLead', (req, res) => {
-  const leadQuery = new Parse.Query('Lead');
-  leadQuery.get(req.params.lead)
+  fetchLead(req.params.lead)
     .then((lead) => {
       if (!lead) { return res.error(`Lead with ID ${req.params.lead} does not exist`); }
-      const leadGroupQuery = new Parse.Query('LeadGroup');
-      leadGroupQuery.equalTo("leads", lead);
-      leadGroupQuery.find()
-        .then((groups) => {
-          groups.forEach((leadGroup) => {
-            leadGroup.remove("leads", lead);
-            leadGroup.save();
-          });
-        })
+      _removeLeadFromGroups(lead)
         .then(() => {
-          lead.destroy();
+          _deleteLead(lead);
         })
+        .catch(removeLeadFromGroupErr => res.error(removeLeadFromGroupErr))
         .then(() => {
-          const agent = req.user;
-          agent.remove("leads", lead);
-          agent.save(null, { useMasterKey: true });
+          _removeLeadFromAgent(lead, req.user);
         })
-        .then(() => {
-          const userQuery = new Parse.Query(Parse.User);
-          userQuery.include('agents');
-          userQuery.include('leads');
-          userQuery.include('leadGroups');
-          userQuery.find('objectId', req.user.id)
-            .then((r) => {
-              res.success(r);
-            });
-        });
-    })
-    .catch(err => res.error(err));
+        .catch(deleteLeadErr => res.error(deleteLeadErr))
+        .then((r) => {
+          res.success(r);
+        })
+        .catch(removeLeadFromAgentErr => res.error(removeLeadFromAgentErr));
+    });
 });
 
+
 module.exports = {
-  _fetchLead,
-  _reconcileLeadToLeadGroup
+  fetchLead,
+  reconcileLeadToLeadGroup,
+  removeLeadGroupFromLead
 };
