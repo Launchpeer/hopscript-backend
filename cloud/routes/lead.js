@@ -294,6 +294,23 @@ Parse.Cloud.define('deleteLead', (req, res) => {
       if (!lead) { return res.error(`Lead with ID ${req.params.lead} does not exist`); }
       _removeLeadFromGroups(lead)
         .then(() => {
+          _deleteLead(lead)
+            .then(() => {
+              _removeLeadFromAgent(lead, req.user)
+                .then((r) => {
+                  res.success(r);
+                }).catch(removeLeadFromAgentErr => res.error(removeLeadFromAgentErr));
+            }).catch(deleteLeadErr => res.error(deleteLeadErr));
+        }).catch(removeLeadFromLeadGroupErr => res.error(removeLeadFromLeadGroupErr));
+    }).catch(fetchLeadErr => res.error(fetchLeadErr));
+});
+/*
+Parse.Cloud.define('deleteLead', (req, res) => {
+  _fetchLead(req.params.lead)
+    .then((lead) => {
+      if (!lead) { return res.error(`Lead with ID ${req.params.lead} does not exist`); }
+      _removeLeadFromGroups(lead)
+        .then(() => {
           _deleteLead(lead);
         })
         .catch(removeLeadFromGroupErr => res.error(removeLeadFromGroupErr))
@@ -307,7 +324,7 @@ Parse.Cloud.define('deleteLead', (req, res) => {
         .catch(removeLeadFromAgentErr => res.error(removeLeadFromAgentErr));
     });
 });
-
+*/
 
 module.exports = {
   _fetchLead,
