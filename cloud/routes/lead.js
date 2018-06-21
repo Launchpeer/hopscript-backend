@@ -64,7 +64,7 @@ Parse.Cloud.define('createLead', (req, res) => {
     .then((leadGroup) => {
       _createNewLead(req.user, lead, leadGroup)
         .then((newlySavedLead) => {
-          reconcileLeadToLeadGroup(newlySavedLead, leadGroup)
+          reconcileLeadToLeadGroup(newlySavedLead, leadGroup.id)
             .then(() => {
               fetchUser(req.user.id)
                 .then((user) => {
@@ -165,7 +165,7 @@ function _updateLead(lead, data) {
       if (key === 'leadGroup') {
         reconcileLeadToLeadGroup(lead, data.leadGroup)
           .then(() => reconcileLeadGroupToLead(lead, data.leadGroup));
-      } else {
+      } else if (key !== 'lead') {
         lead.set(key, data[key]);
       }
     });
