@@ -2,7 +2,6 @@ const { fetchUser } = require('../main');
 const { removeLeadGroupFromLead } = require('./lead');
 
 const _fetchLead = leadId => new Promise((resolve) => {
-  console.log('lead ID in fetchlead');
   const leadQuery = new Parse.Query('Lead');
   leadQuery.include('leadGroups');
   resolve(leadQuery.get(leadId));
@@ -261,19 +260,17 @@ Parse.Cloud.define('deleteLeadGroup', (req, res) => {
       if (!leadGroup) { return res.error(`Lead Group with ID ${req.params.leadGroup} does not exist`); }
       removeLeadGroupFromLeads(leadGroup)
         .then(() => {
-          _deleteLeadGroup(leadGroup);
-        })
-        .catch(removeLeadGroupFromLeadErr => res.error(removeLeadGroupFromLeadErr))
-        .then(() => {
-          _removeLeadGroupFromAgent(leadGroup, req.user);
-        })
-        .catch(deleteLeadGroupErr => res.error(deleteLeadGroupErr))
-        .then((r) => {
-          res.success(r);
-        })
-        .catch(removeLeadGroupFromAgentErr => res.error(removeLeadGroupFromAgentErr));
-    });
+          _deleteLeadGroup(leadGroup)
+            .then(() => {
+              _removeLeadGroupFromAgent(leadGroup, req.user)
+                .then((r) => {
+                  res.success(r);
+                }).catch(removeLeadGroupFromAgentErr => res.error(removeLeadGroupFromAgentErr));
+            }).catch(deleteLeadGroupErr => res.error(deleteLeadGroupErr));
+        }).catch(removeLeadGroupFromLeadErr => res.error(removeLeadGroupFromLeadErr));
+    }).catch(fetchLeadGroupErr => res.error(fetchLeadGroupErr));
 });
+
 
 module.exports = {
   fetchLeadGroup,
