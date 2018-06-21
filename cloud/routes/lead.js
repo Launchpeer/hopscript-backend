@@ -43,8 +43,10 @@ function _createNewLead(user, lead, leadGroup) {
 
 // adds a lead to a leadgroup object
 const reconcileLeadToLeadGroup = (lead, leadGroup) => new Promise((resolve) => {
-  leadGroup.addUnique("leads", lead);
-  resolve(leadGroup.save());
+  fetchLeadGroup(leadGroup).then((fetchedLeadGroup) => {
+    fetchedLeadGroup.addUnique("leads", lead);
+    resolve(fetchedLeadGroup.save());
+  });
 });
 
 // adds a lead to a user object
@@ -62,7 +64,7 @@ Parse.Cloud.define('createLead', (req, res) => {
     .then((leadGroup) => {
       _createNewLead(req.user, lead, leadGroup)
         .then((newlySavedLead) => {
-          reconcileLeadToLeadGroup(newlySavedLead, leadGroup)
+          reconcileLeadToLeadGroup(newlySavedLead, leadGroup.id)
             .then(() => {
               fetchUser(req.user.id)
                 .then((user) => {
@@ -101,7 +103,7 @@ Parse.Cloud.define('createLead', (req, res) => {
  */
 
 // fetches a lead & the leadgroups associated with it
-const fetchLead = leadId => new Promise((resolve) => {
+const _fetchLead = leadId => new Promise((resolve) => {
   const leadQuery = new Parse.Query('Lead');
   leadQuery.include('leadGroups');
   resolve(leadQuery.get(leadId));
@@ -109,7 +111,7 @@ const fetchLead = leadId => new Promise((resolve) => {
 
 
 Parse.Cloud.define('fetchLead', (req, res) => {
-  fetchLead(req.params.lead)
+  _fetchLead(req.params.lead)
     .then(lead => res.success(lead))
     .catch(err => res.error(err));
 });
@@ -134,7 +136,6 @@ Parse.Cloud.define('fetchLeads', (req, res) => {
   fetchLeads(req.user)
     .then(leads => res.success(leads))
     .catch((err) => {
-      console.log("Booboo", err);
       res.error(err);
     });
 });
@@ -158,14 +159,14 @@ Parse.Cloud.define('fetchLeads', (req, res) => {
 
 
 // updates the lead
-function _updateLead(lead) {
+function _updateLead(lead, data) {
   return new Promise((resolve) => {
-    Object.keys(lead).forEach((key) => {
+    Object.keys(data).forEach((key) => {
       if (key === 'leadGroup') {
-        reconcileLeadToLeadGroup(lead, lead.leadGroup)
-          .then(() => reconcileLeadGroupToLead(lead, lead.leadGroup));
-      } else {
-        lead.set(key, lead[key]);
+        reconcileLeadToLeadGroup(lead, data.leadGroup)
+          .then(() => reconcileLeadGroupToLead(lead, data.leadGroup));
+      } else if (key !== 'lead') {
+        lead.set(key, data[key]);
       }
     });
     resolve(lead.save());
@@ -174,9 +175,9 @@ function _updateLead(lead) {
 
 
 Parse.Cloud.define('updateLead', (req, res) => {
-  fetchLead(req.params.lead)
+  _fetchLead(req.params.lead)
     .then((lead) => {
-      _updateLead(lead)
+      _updateLead(lead, req.params)
         .then((r) => {
           res.success(r);
         })
@@ -218,7 +219,7 @@ const removeLeadGroupFromLead = (lead, leadGroup) => new Promise((resolve) => {
 
 
 Parse.Cloud.define('removeGroupFromLead', (req, res) => {
-  fetchLead(req.params.lead)
+  _fetchLead(req.params.lead)
     .then((lead) => {
       fetchLeadGroup(req.params.leadGroup)
         .then((leadGroup) => {
@@ -288,28 +289,25 @@ function _deleteLead(lead) {
 
 
 Parse.Cloud.define('deleteLead', (req, res) => {
-  fetchLead(req.params.lead)
+  _fetchLead(req.params.lead)
     .then((lead) => {
       if (!lead) { return res.error(`Lead with ID ${req.params.lead} does not exist`); }
       _removeLeadFromGroups(lead)
         .then(() => {
-          _deleteLead(lead);
-        })
-        .catch(removeLeadFromGroupErr => res.error(removeLeadFromGroupErr))
-        .then(() => {
-          _removeLeadFromAgent(lead, req.user);
-        })
-        .catch(deleteLeadErr => res.error(deleteLeadErr))
-        .then((r) => {
-          res.success(r);
-        })
-        .catch(removeLeadFromAgentErr => res.error(removeLeadFromAgentErr));
-    });
+          _deleteLead(lead)
+            .then(() => {
+              _removeLeadFromAgent(lead, req.user)
+                .then((r) => {
+                  res.success(r);
+                }).catch(removeLeadFromAgentErr => res.error(removeLeadFromAgentErr));
+            }).catch(deleteLeadErr => res.error(deleteLeadErr));
+        }).catch(removeLeadFromLeadGroupErr => res.error(removeLeadFromLeadGroupErr));
+    }).catch(fetchLeadErr => res.error(fetchLeadErr));
 });
 
 
 module.exports = {
-  fetchLead,
+  _fetchLead,
   reconcileLeadToLeadGroup,
   removeLeadGroupFromLead
 };

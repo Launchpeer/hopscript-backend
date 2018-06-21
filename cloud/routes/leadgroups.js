@@ -1,5 +1,19 @@
 const { fetchUser } = require('../main');
-const { fetchLead, reconcileLeadToLeadGroup, removeLeadGroupFromLead } = require('./lead');
+const { removeLeadGroupFromLead } = require('./lead');
+
+const _fetchLead = leadId => new Promise((resolve) => {
+  const leadQuery = new Parse.Query('Lead');
+  leadQuery.include('leadGroups');
+  resolve(leadQuery.get(leadId));
+});
+
+const reconcileLeadToLeadGroup = (lead, leadGroup) => new Promise((resolve) => {
+  fetchLeadGroup(leadGroup).then((fetchedLeadGroup) => {
+    fetchedLeadGroup.addUnique("leads", lead);
+    resolve(fetchedLeadGroup.save());
+  });
+});
+
 
 /**
  * As an agent I want to create a LeadGroup.
@@ -42,14 +56,17 @@ function _reconcileLeadGroupToUser(user, leadGroup) {
 
 // adds leadgroup to lead object
 const reconcileLeadGroupToLead = (lead, leadGroup) => new Promise((resolve) => {
-  lead.addUnique('leadGroups', leadGroup);
-  resolve(lead.save());
+  fetchLeadGroup(leadGroup)
+    .then((fetchedLeadGroup) => {
+      lead.addUnique('leadGroups', fetchedLeadGroup);
+      resolve(lead.save());
+    });
 });
 
 // reconciles lead to group, and group to lead
 function _fetchLeadAndReconcileToGroup(lead, leadGroup) {
   return new Promise((resolve) => {
-    fetchLead(lead)
+    _fetchLead(lead)
       .then((fetchedLead) => {
         reconcileLeadToLeadGroup(fetchedLead, leadGroup)
           .then(() => {
@@ -71,7 +88,7 @@ Parse.Cloud.define('createLeadGroup', (req, res) => {
         .then((user) => {
           _reconcileLeadGroupToUser(user, newlySavedLeadGroup)
             .then(() => {
-              Promise.all(leadsToAdd.map(lead => _fetchLeadAndReconcileToGroup(lead, newlySavedLeadGroup)))
+              Promise.all(leadsToAdd.map(lead => _fetchLeadAndReconcileToGroup(lead, newlySavedLeadGroup.id)))
                 .then(() => {
                   res.success('created Lead Group');
                 })
@@ -243,19 +260,17 @@ Parse.Cloud.define('deleteLeadGroup', (req, res) => {
       if (!leadGroup) { return res.error(`Lead Group with ID ${req.params.leadGroup} does not exist`); }
       removeLeadGroupFromLeads(leadGroup)
         .then(() => {
-          _deleteLeadGroup(leadGroup);
-        })
-        .catch(removeLeadGroupFromLeadErr => res.error(removeLeadGroupFromLeadErr))
-        .then(() => {
-          _removeLeadGroupFromAgent(leadGroup, req.user);
-        })
-        .catch(deleteLeadGroupErr => res.error(deleteLeadGroupErr))
-        .then((r) => {
-          res.success(r);
-        })
-        .catch(removeLeadGroupFromAgentErr => res.error(removeLeadGroupFromAgentErr));
-    });
+          _deleteLeadGroup(leadGroup)
+            .then(() => {
+              _removeLeadGroupFromAgent(leadGroup, req.user)
+                .then((r) => {
+                  res.success(r);
+                }).catch(removeLeadGroupFromAgentErr => res.error(removeLeadGroupFromAgentErr));
+            }).catch(deleteLeadGroupErr => res.error(deleteLeadGroupErr));
+        }).catch(removeLeadGroupFromLeadErr => res.error(removeLeadGroupFromLeadErr));
+    }).catch(fetchLeadGroupErr => res.error(fetchLeadGroupErr));
 });
+
 
 module.exports = {
   fetchLeadGroup,
