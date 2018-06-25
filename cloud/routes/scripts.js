@@ -16,16 +16,13 @@ function _incrementScriptUpdate(scriptId) {
   });
 }
 
-function _createNewQuestion({ body, category, audio }) {
+function _createNewQuestion(data) {
   return new Promise((resolve) => {
     const Question = Parse.Object.extend('Question');
     const question = new Question();
-    if (body) { question.set('body', body); }
-    if (category) { question.set('category', category); }
-    if (audio) {
-      console.log('deal with audio', audio);
-      // question.set('audio', audio);
-    }
+    Object.keys(data).forEach((key) => {
+      question.set(key, data[key]);
+    });
     resolve(question.save());
   });
 }
@@ -174,8 +171,8 @@ Parse.Cloud.define('createNewQuestion', (req, res) => {
   _createNewQuestion(req.params.question)
     .then((question) => {
       _reconcileQuestionToScript(question, req.params.scriptId)
-        .then((script) => {
-          res.success(script);
+        .then(() => {
+          res.success(question);
         })
         .catch((err) => {
           res.error(err);
