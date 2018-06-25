@@ -55,19 +55,26 @@ function _fetchQuestion(questionId) {
  * @param  {string} route the Parse objectId of the next Question to route to upon selecting this answer
  */
 
-function _createNewAnswer({ body, route }) {
+function _createNewAnswer({ answer, route }) {
   return new Promise((resolve) => {
+    console.log('_createNewAnswer', answer, route);
     const Answer = Parse.Object.extend('Answer');
-    const answer = new Answer();
-    answer.set('body', body);
-    _fetchQuestion(route)
-      .then((question) => {
-        answer.set('route', question);
-        resolve(answer.save());
-      })
-      .catch((err) => {
-        console.log('_fetchQuestion err', err);
-      });
+    const newAnswer = new Answer();
+    newAnswer.set('body', answer);
+    if (route) {
+      console.log('a route');
+      _fetchQuestion(route)
+        .then((question) => {
+          newAnswer.set('route', question);
+          resolve(newAnswer.save());
+        })
+        .catch((err) => {
+          console.log('_fetchQuestion err', err);
+        });
+    } else {
+      console.log('no route');
+      resolve(newAnswer.save());
+    }
   });
 }
 
@@ -261,7 +268,6 @@ function _createAndReconcileAnswer(answer, questionId) {
   return new Promise((resolve) => {
     _createNewAnswer(answer)
       .then((parseAnswer) => {
-        console.log('_createAndReconcileAnswer', parseAnswer);
         addAnswertoQuestion(parseAnswer, questionId)
           .then((question) => {
             resolve(question);
@@ -276,14 +282,54 @@ function _createAndReconcileAnswer(answer, questionId) {
   });
 }
 Parse.Cloud.define('createNewAnswer', (req, res) => {
-  _createAndReconcileAnswer(req.params.answer, req.params.questionId)
+  _createAndReconcileAnswer(req.params.data, req.params.questionId)
     .then((question) => {
-      res.success(question);
+      _fetchScript(req.params.scriptId)
+        .then((script) => {
+          res.success(script);
+        })
     })
     .catch((err) => {
       res.error(err);
     });
 });
+
+function _saveAnswerAndFetchScript(answer, scriptId) {
+  return new Promise((resolve) => {
+    answer.save()
+      .then((answer) => {
+        resolve(_fetchScript(scriptId));
+      })
+  })
+}
+
+function _updateAnswer(answer, data, scriptId) {
+  return new Promise((resolve) => {
+    answer.set('body', data.answer);
+    if(data.route) {
+      _fetchQuestion(data.route)
+        .then((question) => {
+          answer.set('route', question);
+          resolve(_saveAnswerAndFetchScript(answer, scriptId));
+        });
+      } else {
+        resolve(_saveAnswerAndFetchScript(answer, scriptId));
+      }
+    });
+  }
+
+Parse.Cloud.define('updateAnswer', (req, res) => {
+  _fetchAnswer(req.params.answerId)
+    .then((answer) => {
+      _updateAnswer(answer, req.params.answer, req.params.scriptId)
+        .then((script) => {
+          res.success(script);
+        })
+    })
+    .catch((err) => {
+      console.log('get answer err', err);
+    })
+})
 
 function _formatAnswerData(data) {
   const keys = Object.keys(data);
