@@ -1,9 +1,11 @@
 const StripeInterface = require('mc-stripe-server');
 const config = require('../../config');
 const request = require('request');
+const fetch = require("node-fetch");
 
-const { STRIPE_API_KEY } = config;
+const { STRIPE_API_KEY, STRIPE_PUBLISHABLE_KEY } = config;
 const Stripe = require('stripe')(STRIPE_API_KEY);
+console.log('stripeapi', STRIPE_API_KEY);
 
 Parse.Cloud.define('getStripeConnectId', (req, res) => {
   request.post({
@@ -22,7 +24,6 @@ Parse.Cloud.define('getStripeConnectId', (req, res) => {
   });
 });
 
-
 Parse.Cloud.define('getBalanceHistory', (req, res) => {
   Stripe.charges.list({ stripe_account: req.params.stripe_connect_id }, (err, transactions) => {
   // asynchronously called returning an array at transactions.data
@@ -33,21 +34,41 @@ Parse.Cloud.define('getBalanceHistory', (req, res) => {
   });
 });
 
+function _getStripeToken({ number , expMonth, expYear, cvc}) {
+  return new Promise((resolve) => {
+    fetch(`https://api.stripe.com/v1/tokens?card[number]=${number}&card[exp_month]=${expMonth}&card[exp_year]=${expYear}&card[cvc]=${cvc}`,
+      {
+         method: 'POST',
+         headers: {
+           'Content-Type': 'application/x-www-form-urlencoded',
+           'Authorization': `Bearer ${STRIPE_API_KEY}`
+         }
+     })
+     .then(r => {
+       r.json()
+        .then(c => resolve(c.id))
+     })
+  })
+}
+
 Parse.Cloud.define('createStripeCustomer', (req, res) => {
   const strI = new StripeInterface(STRIPE_API_KEY);
   const { user } = req;
-  strI.createCustomer(req.user.id, req.params.token)
-    .then((customer) => {
-      user.set("stripe_customer_id", customer.id);
-      user.set("last4", customer.sources.data[0].last4);
-      user.save(null, { useMasterKey: true })
-        .then((updatedUser) => {
-          res.success(updatedUser);
+  _getStripeToken(req.params)
+    .then((token) => {
+      strI.createCustomer(req.user.id, token)
+        .then((customer) => {
+          user.set("stripe_customer_id", customer.id);
+          user.set("last4", customer.sources.data[0].last4);
+          user.save(null, { useMasterKey: true })
+            .then((updatedUser) => {
+              res.success(updatedUser);
+            });
+        })
+        .catch((err) => {
+          res.error(err);
         });
     })
-    .catch((err) => {
-      res.error(err);
-    });
 });
 
 Parse.Cloud.define('updateStripeCustomer', (req, res) => {

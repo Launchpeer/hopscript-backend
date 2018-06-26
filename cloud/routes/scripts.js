@@ -1,3 +1,5 @@
+const { fetchUser } = require('../main');
+
 // This function is used to trigger an update to the Script //
 // This is handy when you update a pointer and want the Script live query to know to update itself //
 
