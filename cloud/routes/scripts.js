@@ -456,11 +456,14 @@ Parse.Cloud.define('deleteQuestion', (req, res) => {
 
 function _dissociateScriptFromUser(script, userId) {
  return new Promise((resolve) => {
-   _fetchUser(userId)
+   fetchUser(userId)
      .then((user) => {
        user.remove("scripts", script);
-       resolve(user.save());
-     });
+       resolve(user.save(null, { useMasterKey: true }));
+     })
+     .catch((err) => {
+       console.log('FETCH USER ERR: ', err);
+     })
  });
 }
 
@@ -470,7 +473,7 @@ function _deleteScript(script) {
  });
 }
 
-function _deleteScriptsAndUpdate(script, user) {
+function _deleteScriptAndUpdate(script, user) {
  return new Promise((resolve) => {
    _deleteScript(script)
      .then(() => {
@@ -494,14 +497,32 @@ function _fetchAndDeleteQuestion(id) {
 // fetch question
 // delete answers
 // delete question
+//
+
+function _deleteAnswersAndDeleteQuestion(question) {
+  return new Promise((resolve) => {
+    if(question.attributes.answers) {
+      Promise.all(question.attributes.answers.map(answer => _deleteAnswer(answer)))
+        .then(() => {
+          resolve(_deleteQuestion(question));
+        })
+        .catch((deleteAnswerErr) => {
+          console.log('DELETE ANSWER ERR', deleteAnswerErr);
+        })
+    } else {
+      resolve(_deleteQuestion(question));
+    }
+  })
+}
 
 Parse.Cloud.define('deleteScript', (req, res) => {
  _fetchScript(req.params.id)
    .then((script) => {
-     _dissociateScriptFromUser(script, req.params.user)
+     _dissociateScriptFromUser(script, req.user.id)
        .then(() => {
          if(script.attributes.questions) {
-           Promise.all(script.attributes.questions.map((question) => _fetchAndDeleteQuestion(question.id)))
+           Promise.all(script.attributes.questions.map((question) =>
+           _deleteAnswersAndDeleteQuestion(question)))
              .then(() => {
                _deleteScriptAndUpdate(script, req.user)
                  .then((scripts) => {

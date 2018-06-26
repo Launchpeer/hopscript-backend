@@ -5,7 +5,6 @@ const fetch = require("node-fetch");
 
 const { STRIPE_API_KEY, STRIPE_PUBLISHABLE_KEY } = config;
 const Stripe = require('stripe')(STRIPE_API_KEY);
-console.log('stripeapi', STRIPE_API_KEY);
 
 Parse.Cloud.define('getStripeConnectId', (req, res) => {
   request.post({
