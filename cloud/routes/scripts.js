@@ -131,10 +131,11 @@ function _reconcileScriptToUser(script, userId) {
   });
 }
 
-function _createNewScript() {
+function _createNewScript(user) {
   return new Promise((resolve) => {
     const Script = Parse.Object.extend('Script');
     const script = new Script();
+    script.set('agent', user);
     resolve(script.save());
   });
 }
@@ -150,7 +151,7 @@ function _createNewScript() {
 
 
 Parse.Cloud.define('createNewScript', (req, res) => {
-  _createNewScript()
+  _createNewScript(req.user)
     .then((script) => {
       _reconcileScriptToUser(script, req.params.userId)
         .then(() => {
@@ -283,13 +284,10 @@ function _createAndReconcileAnswer(answer, questionId) {
 }
 Parse.Cloud.define('createNewAnswer', (req, res) => {
   _createAndReconcileAnswer(req.params.data, req.params.questionId)
-    .then(() => {
+    .then((question) => {
       _fetchScript(req.params.scriptId)
         .then((script) => {
           res.success(script);
-        })
-        .catch((fetchErr) => {
-          res.error('_fetchScript ERR', fetchErr);
         });
     })
     .catch((err) => {
@@ -300,7 +298,7 @@ Parse.Cloud.define('createNewAnswer', (req, res) => {
 function _saveAnswerAndFetchScript(answer, scriptId) {
   return new Promise((resolve) => {
     answer.save()
-      .then(() => {
+      .then((answer) => {
         resolve(_fetchScript(scriptId));
       });
   });
@@ -334,6 +332,49 @@ Parse.Cloud.define('updateAnswer', (req, res) => {
     });
 });
 
+function _formatAnswerData(data) {
+  const keys = Object.keys(data);
+  const values = Object.values(data);
+  return keys.map((k) => {
+    if (k.startsWith('answer')) {
+      return {
+        body: values[keys.indexOf(k)],
+        route: values[keys.indexOf(k) + 1]
+      };
+    }
+  }).filter((j) => { if (j) { return j; } });
+}
+
+
+/**
+ * As an agent, I want to add an Answer to my Script Questions
+
+ * We format the object data by matching the answer and route
+ * This data becomes an array of objects
+ * We map over this object array and create a new array of promises
+ * We then wait for all of the promises to resolve before triggering an update to the Script
+ * The web portal is listening for updates to the Script and will trigger a fetch on it's side
+
+ * @param  {object} data contains routes and answers
+ * @param  {string} questionId Parse objectId for the Question
+ * @param  {string} scriptId Parse objectId for the Script
+*/
+
+
+Parse.Cloud.define('addAnswers', (req, res) => {
+  Promise.all(_formatAnswerData(req.params.data)
+    .map(answer => _createAndReconcileAnswer(answer, req.params.questionId)))
+    .then(() => {
+      _fetchScript(req.params.scriptId)
+        .then((script) => {
+          res.success(script);
+        })
+        .catch((err) => {
+          res.error(err);
+        });
+    })
+    .catch(err => res.error(err));
+});
 
 function _fetchAnswer(answerId) {
   return new Promise((resolve) => {
@@ -346,12 +387,6 @@ function _fetchAnswer(answerId) {
 function _deleteAnswer(answer) {
   return new Promise((resolve) => {
     resolve(answer.destroy({ useMasterKey: true }));
-  });
-}
-
-function _deleteQuestion(question) {
-  return new Promise((resolve) => {
-    resolve(question.destroy({ useMasterKey: true }));
   });
 }
 
@@ -390,46 +425,18 @@ Parse.Cloud.define('deleteAnswer', (req, res) => {
     });
 });
 
-function _fetchAndDeleteAnswer(id) {
-  return new Promise((resolve) => {
-    _fetchAnswer(id)
-      .then((parseAnswer) => {
-        resolve(_deleteAnswer(parseAnswer));
-      });
-  });
-}
 
-function _deleteAllAnswersFromQuestion(question) {
-  return new Promise((resolve) => {
-    if (question.attributes.answers) {
-      resolve(Promise.all(question.attributes.answers.map(answer => _fetchAndDeleteAnswer(answer.id))));
-    } else {
-      resolve('no answers');
-    }
-  });
-}
+// fetches all scripts associated with the user querying
+const fetchScripts = user => new Promise((resolve) => {
+  const scriptsQuery = new Parse.Query("Script");
+  scriptsQuery.equalTo('agent', user);
+  resolve(scriptsQuery.find(null, { userMasterKey: true }));
+});
 
-function _removeQuestionFromScript(scriptId, question) {
-  return new Promise((resolve) => {
-    _fetchScript(scriptId)
-      .then((script) => {
-        script.remove("questions", question);
-        resolve(script.save());
-      });
-  });
-}
-
-Parse.Cloud.define('deleteQuestion', (req, res) => {
-  _fetchQuestion(req.params.questionId)
-    .then((question) => {
-      Promise.all([
-        _deleteAllAnswersFromQuestion(question),
-        _removeQuestionFromScript(req.params.scriptId, question),
-        _deleteQuestion(question)
-      ])
-        .then((promiseRes) => {
-          console.log('res', promiseRes);
-          res.success('got em');
-        });
+Parse.Cloud.define('fetchScripts', (req, res) => {
+  fetchScripts(req.user)
+    .then(scripts => res.success(scripts))
+    .catch((err) => {
+      res.error(err);
     });
 });
