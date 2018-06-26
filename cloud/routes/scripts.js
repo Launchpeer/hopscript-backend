@@ -433,69 +433,6 @@ Parse.Cloud.define('fetchScripts', (req, res) => {
     });
 });
 
-<<<<<<< HEAD
-function _dissociateScriptFromUser(script, userId) {
-  return new Promise((resolve) => {
-    _fetchUser(userId)
-      .then((user) => {
-        user.remove("scripts", script);
-        resolve(user.save());
-      });
-  });
-}
-
-function _deleteScript(script) {
-  return new Promise((resolve) => {
-    resolve(script.destroy({ useMasterKey: true }));
-  });
-}
-
-function _deleteScriptsAndUpdate(script, user) {
-  return new Promise((resolve) => {
-    _deleteScript(script)
-      .then(() => {
-        resolve(fetchScripts(user));
-      })
-  })
-}
-
-//TODO : integrate deleteQuestion
-
-Parse.Cloud.define('deleteScript', (req, res) => {
-  _fetchScript(req.params.id)
-    .then((script) => {
-      _dissociateScriptFromUser(script, req.params.user)
-        .then(() => {
-          if(script.attributes.questions) {
-            Promise.all(script.attributes.questions.map((question) => _deleteQuestion(question.id)))
-              .then(() => {
-                _deleteScriptAndUpdate(script, req.user)
-                  .then((scripts) => {
-                    res.success(scripts)
-                  })
-                  .catch((deleteScriptErr) => {
-                    res.error('DELETE SCRIPT ERR: ', deleteScriptErr)
-                  })
-              })
-              .catch((deleteQuestionErr) => {
-                res.error('DELETE QUESTION ERR: ', deleteQuestionErr)
-              })
-          } else {
-            _deleteScriptAndUpdate(script, req.user)
-              .then((scripts) => {
-                res.success(scripts)
-              })
-              .catch((deleteScriptErr) => {
-                res.error('DELETE SCRIPT ERR: ', deleteScriptErr)
-              })
-          }
-        })
-        .catch((dissociateScriptFromUserErr) => {
-          res.error('DISSOCIATE SCRIPT FROM USER ERR: ', dissociateScriptFromUserErr)
-        })
-    })
-})
-=======
 function _deleteQuestion(question) {
   return new Promise((resolve) => {
     resolve(question.destroy({ useMasterKey: true }));
@@ -513,4 +450,3 @@ Parse.Cloud.define('deleteQuestion', (req, res) => {
         }).catch(deleteQErr => res.error('deleteQErr:', deleteQErr));
     }).catch(fetchQErr => res.error('fetchQErr:', fetchQErr));
 });
->>>>>>> 5d84ef1ac96673bf146c4d7e8f39b576be20fc73
