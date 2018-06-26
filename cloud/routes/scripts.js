@@ -43,7 +43,6 @@ function _reconcileQuestionToScript(question, scriptId) {
 
 function _fetchQuestion(questionId) {
   return new Promise((resolve) => {
-    console.log('_fetchQuestion', questionId);
     const Question = Parse.Object.extend('Question');
     const query = new Parse.Query(Question);
     resolve(query.get(questionId));
@@ -52,7 +51,6 @@ function _fetchQuestion(questionId) {
 
 /**
  A Parse Answer Object is instantiated, body and route are set, and the answer is returned
-
  * @param  {string} body the answer text
  * @param  {string} route the Parse objectId of the next Question to route to upon selecting this answer
  */
@@ -170,9 +168,7 @@ Parse.Cloud.define('createNewScript', (req, res) => {
 
 /**
  * As an agent, I want to create a new Question
-
  A Parse Question Object is instantiated, then that Question Object is added to the Script as a Pointer
-
  * @param  {object} question contains a body, a category, and an audio file
  * @param  {string} scriptId Parse objectId for the Script
  */
@@ -227,9 +223,7 @@ Parse.Cloud.define('createQuestion', (req, res) => {
 
 /**
  * As an agent, I want to update a Question
-
  * the question is fetched using the objectId
-
  * @param  {object} answer contains a body, and a route
  * @param  {string} questionId Parse objectId for the Question
  */
@@ -260,9 +254,7 @@ Parse.Cloud.define('updateQuestion', (req, res) => {
 
 /**
  * As an agent, I want to add an Answer to my Script Question
-
  A Parse Answer Object is instantiated, then that Answer Object is added to the Question as a Pointer
-
  * @param  {object} answer contains a body, and a route
  * @param  {string} questionId Parse objectId for the Question
  */
@@ -350,13 +342,11 @@ function _formatAnswerData(data) {
 
 /**
  * As an agent, I want to add an Answer to my Script Questions
-
  * We format the object data by matching the answer and route
  * This data becomes an array of objects
  * We map over this object array and create a new array of promises
  * We then wait for all of the promises to resolve before triggering an update to the Script
  * The web portal is listening for updates to the Script and will trigger a fetch on it's side
-
  * @param  {object} data contains routes and answers
  * @param  {string} questionId Parse objectId for the Question
  * @param  {string} scriptId Parse objectId for the Script
@@ -443,6 +433,7 @@ Parse.Cloud.define('fetchScripts', (req, res) => {
     });
 });
 
+<<<<<<< HEAD
 function _dissociateScriptFromUser(script, userId) {
   return new Promise((resolve) => {
     _fetchUser(userId)
@@ -504,3 +495,22 @@ Parse.Cloud.define('deleteScript', (req, res) => {
         })
     })
 })
+=======
+function _deleteQuestion(question) {
+  return new Promise((resolve) => {
+    resolve(question.destroy({ useMasterKey: true }));
+  });
+}
+
+Parse.Cloud.define('deleteQuestion', (req, res) => {
+  _fetchQuestion(req.params.question)
+    .then((q) => {
+      _deleteQuestion(q)
+        .then(() => {
+          _fetchScript(req.params.script)
+            .then(script => res.success(script))
+            .catch(fetchScriptErr => res.error('fetchScriptErr:', fetchScriptErr));
+        }).catch(deleteQErr => res.error('deleteQErr:', deleteQErr));
+    }).catch(fetchQErr => res.error('fetchQErr:', fetchQErr));
+});
+>>>>>>> 5d84ef1ac96673bf146c4d7e8f39b576be20fc73
