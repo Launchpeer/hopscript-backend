@@ -440,11 +440,14 @@ function _deleteQuestion(question) {
 Parse.Cloud.define('deleteQuestion', (req, res) => {
   _fetchQuestion(req.params.question)
     .then((q) => {
-      _deleteQuestion(q)
+      Promise.all(q.attributes.answers.map(answer => _deleteAnswer(answer)))
         .then(() => {
-          _fetchScript(req.params.script)
-            .then(script => res.success(script))
-            .catch(fetchScriptErr => res.error('fetchScriptErr:', fetchScriptErr));
-        }).catch(deleteQErr => res.error('deleteQErr:', deleteQErr));
+          _deleteQuestion(q)
+            .then(() => {
+              _fetchScript(req.params.script)
+                .then(script => res.success(script))
+                .catch(fetchScriptErr => res.error('fetchScriptErr:', fetchScriptErr));
+            }).catch(deleteQErr => res.error('deleteQErr:', deleteQErr));
+        }).catch(deleteAErr => res.error('deleteAErr:', deleteAErr));
     }).catch(fetchQErr => res.error('fetchQErr:', fetchQErr));
 });
