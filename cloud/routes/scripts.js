@@ -1,3 +1,5 @@
+const { fetchUser } = require('../main');
+
 // This function is used to trigger an update to the Script //
 // This is handy when you update a pointer and want the Script live query to know to update itself //
 
@@ -440,3 +442,65 @@ Parse.Cloud.define('fetchScripts', (req, res) => {
       res.error(err);
     });
 });
+
+function _dissociateScriptFromUser(script, userId) {
+  return new Promise((resolve) => {
+    _fetchUser(userId)
+      .then((user) => {
+        user.remove("scripts", script);
+        resolve(user.save());
+      });
+  });
+}
+
+function _deleteScript(script) {
+  return new Promise((resolve) => {
+    resolve(script.destroy({ useMasterKey: true }));
+  });
+}
+
+function _deleteScriptsAndUpdate(script, user) {
+  return new Promise((resolve) => {
+    _deleteScript(script)
+      .then(() => {
+        resolve(fetchScripts(user));
+      })
+  })
+}
+
+//TODO : integrate deleteQuestion
+
+Parse.Cloud.define('deleteScript', (req, res) => {
+  _fetchScript(req.params.id)
+    .then((script) => {
+      _dissociateScriptFromUser(script, req.params.user)
+        .then(() => {
+          if(script.attributes.questions) {
+            Promise.all(script.attributes.questions.map((question) => _deleteQuestion(question.id)))
+              .then(() => {
+                _deleteScriptAndUpdate(script, req.user)
+                  .then((scripts) => {
+                    res.success(scripts)
+                  })
+                  .catch((deleteScriptErr) => {
+                    res.error('DELETE SCRIPT ERR: ', deleteScriptErr)
+                  })
+              })
+              .catch((deleteQuestionErr) => {
+                res.error('DELETE QUESTION ERR: ', deleteQuestionErr)
+              })
+          } else {
+            _deleteScriptAndUpdate(script, req.user)
+              .then((scripts) => {
+                res.success(scripts)
+              })
+              .catch((deleteScriptErr) => {
+                res.error('DELETE SCRIPT ERR: ', deleteScriptErr)
+              })
+          }
+        })
+        .catch((dissociateScriptFromUserErr) => {
+          res.error('DISSOCIATE SCRIPT FROM USER ERR: ', dissociateScriptFromUserErr)
+        })
+    })
+})
