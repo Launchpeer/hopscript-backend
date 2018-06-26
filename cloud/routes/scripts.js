@@ -450,3 +450,79 @@ Parse.Cloud.define('deleteQuestion', (req, res) => {
         }).catch(deleteQErr => res.error('deleteQErr:', deleteQErr));
     }).catch(fetchQErr => res.error('fetchQErr:', fetchQErr));
 });
+
+function _dissociateScriptFromUser(script, userId) {
+ return new Promise((resolve) => {
+   _fetchUser(userId)
+     .then((user) => {
+       user.remove("scripts", script);
+       resolve(user.save());
+     });
+ });
+}
+
+function _deleteScript(script) {
+ return new Promise((resolve) => {
+   resolve(script.destroy({ useMasterKey: true }));
+ });
+}
+
+function _deleteScriptsAndUpdate(script, user) {
+ return new Promise((resolve) => {
+   _deleteScript(script)
+     .then(() => {
+       resolve(fetchScripts(user));
+     })
+ })
+}
+
+function _fetchAndDeleteQuestion(id) {
+  return new Promise((resolve) => {
+    _fetchQuestion(id)
+      .then((question) => {
+        resolve(_deleteQuestion(question));
+      })
+      .catch((fetchQuestionErr) => {
+        console.log('FETCH QUESTION ERR: ', fetchQuestionErr);
+      })
+  })
+}
+
+// fetch question
+// delete answers
+// delete question
+
+Parse.Cloud.define('deleteScript', (req, res) => {
+ _fetchScript(req.params.id)
+   .then((script) => {
+     _dissociateScriptFromUser(script, req.params.user)
+       .then(() => {
+         if(script.attributes.questions) {
+           Promise.all(script.attributes.questions.map((question) => _fetchAndDeleteQuestion(question.id)))
+             .then(() => {
+               _deleteScriptAndUpdate(script, req.user)
+                 .then((scripts) => {
+                   res.success(scripts)
+                 })
+                 .catch((deleteScriptErr) => {
+                   res.error('DELETE SCRIPT ERR: ', deleteScriptErr)
+                 })
+             })
+             .catch((deleteQuestionErr) => {
+               res.error('DELETE QUESTION ERR: ', deleteQuestionErr)
+             })
+         } else {
+           _deleteScriptAndUpdate(script, req.user)
+             .then((scripts) => {
+               res.success(scripts)
+             })
+             .catch((deleteScriptErr) => {
+               res.error('DELETE SCRIPT ERR: ', deleteScriptErr)
+             })
+         }
+       })
+       .catch((dissociateScriptFromUserErr) => {
+         res.error('DISSOCIATE SCRIPT FROM USER ERR: ', dissociateScriptFromUserErr)
+       })
+   })
+})
