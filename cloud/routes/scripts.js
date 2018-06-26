@@ -255,6 +255,14 @@ Parse.Cloud.define('updateQuestion', (req, res) => {
     });
 });
 
+function _createNewAudio(audioFile) {
+  return new Promise((resolve) => {
+    console.log('audioFile', audioFile[0]);
+    const parseFile = new Parse.File('file', audioFile[0]);
+    resolve(parseFile.save());
+  });
+}
+
 /**
  * As an agent, I want to add an Answer to my Script Question
 
@@ -283,11 +291,14 @@ function _createAndReconcileAnswer(answer, questionId) {
 }
 Parse.Cloud.define('createNewAnswer', (req, res) => {
   _createAndReconcileAnswer(req.params.data, req.params.questionId)
-    .then((question) => {
+    .then(() => {
       _fetchScript(req.params.scriptId)
         .then((script) => {
           res.success(script);
         })
+        .catch((fetchErr) => {
+          res.error('_fetchScript ERR', fetchErr);
+        });
     })
     .catch((err) => {
       res.error(err);
@@ -297,26 +308,26 @@ Parse.Cloud.define('createNewAnswer', (req, res) => {
 function _saveAnswerAndFetchScript(answer, scriptId) {
   return new Promise((resolve) => {
     answer.save()
-      .then((answer) => {
+      .then(() => {
         resolve(_fetchScript(scriptId));
-      })
-  })
+      });
+  });
 }
 
 function _updateAnswer(answer, data, scriptId) {
   return new Promise((resolve) => {
     answer.set('body', data.answer);
-    if(data.route) {
+    if (data.route) {
       _fetchQuestion(data.route)
         .then((question) => {
           answer.set('route', question);
           resolve(_saveAnswerAndFetchScript(answer, scriptId));
         });
-      } else {
-        resolve(_saveAnswerAndFetchScript(answer, scriptId));
-      }
-    });
-  }
+    } else {
+      resolve(_saveAnswerAndFetchScript(answer, scriptId));
+    }
+  });
+}
 
 Parse.Cloud.define('updateAnswer', (req, res) => {
   _fetchAnswer(req.params.answerId)
@@ -324,54 +335,13 @@ Parse.Cloud.define('updateAnswer', (req, res) => {
       _updateAnswer(answer, req.params.answer, req.params.scriptId)
         .then((script) => {
           res.success(script);
-        })
+        });
     })
     .catch((err) => {
       console.log('get answer err', err);
-    })
-})
-
-function _formatAnswerData(data) {
-  const keys = Object.keys(data);
-  const values = Object.values(data);
-  return keys.map((k) => {
-    if (k.startsWith('answer')) {
-      return {
-        body: values[keys.indexOf(k)],
-        route: values[keys.indexOf(k) + 1]
-      };
-    }
-  }).filter((j) => { if (j) { return j; } });
-}
-
-/**
- * As an agent, I want to add an Answer to my Script Questions
-
- * We format the object data by matching the answer and route
- * This data becomes an array of objects
- * We map over this object array and create a new array of promises
- * We then wait for all of the promises to resolve before triggering an update to the Script
- * The web portal is listening for updates to the Script and will trigger a fetch on it's side
-
- * @param  {object} data contains routes and answers
- * @param  {string} questionId Parse objectId for the Question
- * @param  {string} scriptId Parse objectId for the Script
-*/
-
-Parse.Cloud.define('addAnswers', (req, res) => {
-  Promise.all(_formatAnswerData(req.params.data)
-    .map(answer => _createAndReconcileAnswer(answer, req.params.questionId)))
-    .then(() => {
-      _fetchScript(req.params.scriptId)
-        .then((script) => {
-          res.success(script);
-        })
-        .catch((err) => {
-          res.error(err);
-        });
-    })
-    .catch(err => res.error(err));
+    });
 });
+
 
 function _fetchAnswer(answerId) {
   return new Promise((resolve) => {
@@ -384,6 +354,12 @@ function _fetchAnswer(answerId) {
 function _deleteAnswer(answer) {
   return new Promise((resolve) => {
     resolve(answer.destroy({ useMasterKey: true }));
+  });
+}
+
+function _deleteQuestion(question) {
+  return new Promise((resolve) => {
+    resolve(question.destroy({ useMasterKey: true }));
   });
 }
 
@@ -419,5 +395,49 @@ Parse.Cloud.define('deleteAnswer', (req, res) => {
     })
     .catch((err) => {
       res.error('_dissociateAnswerFromQuestion ERR:', err);
+    });
+});
+
+function _fetchAndDeleteAnswer(id) {
+  return new Promise((resolve) => {
+    _fetchAnswer(id)
+      .then((parseAnswer) => {
+        resolve(_deleteAnswer(parseAnswer));
+      });
+  });
+}
+
+function _deleteAllAnswersFromQuestion(question) {
+  return new Promise((resolve) => {
+    if (question.attributes.answers) {
+      resolve(Promise.all(question.attributes.answers.map(answer => _fetchAndDeleteAnswer(answer.id))));
+    } else {
+      resolve('no answers');
+    }
+  });
+}
+
+function _removeQuestionFromScript(scriptId, question) {
+  return new Promise((resolve) => {
+    _fetchScript(scriptId)
+      .then((script) => {
+        script.remove("questions", question);
+        resolve(script.save());
+      });
+  });
+}
+
+Parse.Cloud.define('deleteQuestion', (req, res) => {
+  _fetchQuestion(req.params.questionId)
+    .then((question) => {
+      Promise.all([
+        _deleteAllAnswersFromQuestion(question),
+        _removeQuestionFromScript(req.params.scriptId, question),
+        _deleteQuestion(question)
+      ])
+        .then((promiseRes) => {
+          console.log('res', promiseRes);
+          res.success('got em');
+        });
     });
 });
