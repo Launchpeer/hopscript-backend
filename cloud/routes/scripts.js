@@ -255,14 +255,6 @@ Parse.Cloud.define('updateQuestion', (req, res) => {
     });
 });
 
-function _createNewAudio(audioFile) {
-  return new Promise((resolve) => {
-    console.log('audioFile', audioFile[0]);
-    const parseFile = new Parse.File('file', audioFile[0]);
-    resolve(parseFile.save());
-  });
-}
-
 /**
  * As an agent, I want to add an Answer to my Script Question
 
