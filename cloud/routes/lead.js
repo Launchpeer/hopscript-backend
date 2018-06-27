@@ -35,7 +35,7 @@ function _createNewLead(user, lead, leadGroup) {
     LObj.set('phone', formattedPhone);
     LObj.set('email', lead.email);
     LObj.set('leadType', lead.leadType);
-    LObj.addUnique('leadGroups', leadGroup);
+    if (leadGroup) { LObj.addUnique('leadGroups', leadGroup); }
     LObj.set('agent', Agent);
     resolve(LObj.save());
   });
@@ -57,8 +57,7 @@ function _reconcileLeadToUser(user, lead) {
   });
 }
 
-
-Parse.Cloud.define('createLead', (req, res) => {
+Parse.Cloud.define('createLeadInLeadGroup', (req, res) => {
   const { lead } = req.params;
   fetchLeadGroup(lead.leadGroup)
     .then((leadGroup) => {
@@ -88,6 +87,27 @@ Parse.Cloud.define('createLead', (req, res) => {
     })
     .catch((fetchLeadGroupErr) => {
       res.error(fetchLeadGroupErr);
+    });
+})
+
+Parse.Cloud.define('createLead', (req, res) => {
+  const { lead } = req.params;
+  _createNewLead(req.user, lead)
+    .then((newlySavedLead) => {
+      fetchUser(req.user.id)
+        .then((user) => {
+          _reconcileLeadToUser(user, newlySavedLead)
+            .then(r => res.success(r))
+            .catch((reconcileLeadToUserErr) => {
+              res.error('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
+            });
+        })
+        .catch((fetchUserErr) => {
+          res.error('FETCH USER ERR: ', fetchUserErr);
+        });
+    })
+    .catch((createNewLeadErr) => {
+      res.error('CREATE NEW LEAD ERR: ', createNewLeadErr);
     });
 });
 
