@@ -57,12 +57,10 @@ function _fetchQuestion(questionId) {
 
 function _createNewAnswer({ answer, route }) {
   return new Promise((resolve) => {
-    console.log('_createNewAnswer', answer, route);
     const Answer = Parse.Object.extend('Answer');
     const newAnswer = new Answer();
     newAnswer.set('body', answer);
     if (route) {
-      console.log('a route');
       _fetchQuestion(route)
         .then((question) => {
           newAnswer.set('route', question);
@@ -72,7 +70,6 @@ function _createNewAnswer({ answer, route }) {
           console.log('_fetchQuestion err', err);
         });
     } else {
-      console.log('no route');
       resolve(newAnswer.save());
     }
   });
@@ -93,7 +90,6 @@ function addAnswertoQuestion(answer, questionId) {
     const query = new Parse.Query(Question);
     query.get(questionId)
       .then((question) => {
-        console.log('question', question);
         question.add('answers', answer);
         resolve(question.save());
       });
@@ -228,29 +224,29 @@ Parse.Cloud.define('createQuestion', (req, res) => {
  * @param  {string} questionId Parse objectId for the Question
  */
 
-Parse.Cloud.define('updateQuestion', (req, res) => {
-  _fetchQuestion(req.params.questionId)
-    .then((question) => {
-      Object.keys(req.params.question).forEach((key) => {
-        question.set(key, req.params.question[key]);
-      });
-      question.save()
-        .then(() => {
-          _incrementScriptUpdate(req.params.scriptId)
-            .then(() => {
-              res.success('got em');
-            })
-            .catch((err) => {
-              console.log('increment err', err);
-              res.error(err);
-            });
+function _fetchAndUpdateQuestion(id, data) {
+  return new Promise((resolve) => {
+    _fetchQuestion(id)
+      .then((question) => {
+        Object.keys(data).forEach((key) => {
+          question.set(key, data[key]);
         });
+        resolve(question.save());
+      })
+      .catch((fetchQuestionErr) => console.log('FETCH QUESTION ERR: ', fetchQuestionErr))
     })
-    .catch((err) => {
-      console.log('fetch question err', err);
-      res.error(err);
-    });
-});
+}
+Parse.Cloud.define('updateQuestion', (req, res) => {
+  _fetchAndUpdateQuestion(req.params.questionId, req.params.data)
+    .then(() => {
+      _fetchScript(req.params.scriptId)
+        .then((script) => {
+          res.success(script)
+        })
+        .catch((fetchScriptErr) => console.log('FETCH SCRIPT ERR: ', fetchScriptErr))
+    })
+    .catch((fetchAndUpdateQuestionErr) => console.log('FETCH AND UPDATE QUESTION ERR: ', fetchAndUpdateQuestionErr))
+})
 
 /**
  * As an agent, I want to add an Answer to my Script Question
@@ -442,15 +438,24 @@ function _deleteQuestion(question) {
 Parse.Cloud.define('deleteQuestion', (req, res) => {
   _fetchQuestion(req.params.question)
     .then((q) => {
-      Promise.all(q.attributes.answers.map(answer => _deleteAnswer(answer)))
-        .then(() => {
-          _deleteQuestion(q)
-            .then(() => {
-              _fetchScript(req.params.script)
-                .then(script => res.success(script))
-                .catch(fetchScriptErr => res.error('fetchScriptErr:', fetchScriptErr));
-            }).catch(deleteQErr => res.error('deleteQErr:', deleteQErr));
-        }).catch(deleteAErr => res.error('deleteAErr:', deleteAErr));
+      if(q.attributes.answers) {
+        Promise.all(q.attributes.answers.map(answer => _deleteAnswer(answer)))
+          .then(() => {
+            _deleteQuestion(q)
+              .then(() => {
+                _fetchScript(req.params.script)
+                  .then(script => res.success(script))
+                  .catch(fetchScriptErr => res.error('fetchScriptErr:', fetchScriptErr));
+              }).catch(deleteQErr => res.error('deleteQErr:', deleteQErr));
+          }).catch(deleteAErr => res.error('deleteAErr:', deleteAErr));
+      } else {
+        _deleteQuestion(q)
+          .then(() => {
+            _fetchScript(req.params.script)
+              .then(script => res.success(script))
+              .catch(fetchScriptErr => res.error('fetchScriptErr:', fetchScriptErr));
+          }).catch(deleteQErr => res.error('deleteQErr:', deleteQErr));
+      }
     }).catch(fetchQErr => res.error('fetchQErr:', fetchQErr));
 });
 
