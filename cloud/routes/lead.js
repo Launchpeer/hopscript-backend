@@ -308,6 +308,7 @@ Parse.Cloud.define('deleteLead', (req, res) => {
 
 module.exports = {
   _fetchLead,
+  fetchLeads,
   reconcileLeadToLeadGroup,
   removeLeadGroupFromLead
 };
