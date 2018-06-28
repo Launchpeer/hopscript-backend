@@ -10,10 +10,12 @@ const twilio = require('twilio');
 const ParseDashboard = require('parse-dashboard');
 const sendgrid = require('parse-server-sendgrid-adapter');
 const S3Adapter = require('@parse/s3-files-adapter');
+const bodyParser = require('body-parser');
 const config = require('./config');
 const cors = require('cors');
 
 const app = express();
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cors());
 require('dotenv').config();
 
@@ -138,12 +140,22 @@ app.get('/token', (request, response) => {
 
 // Create TwiML for outbound calls
 app.post('/voice', (request, response) => {
-  const voiceResponse = new VoiceResponse();
-  voiceResponse.dial({
-    callerId: TWILIO_NUMBER,
-  }, request.body.number);
-  response.type('text/xml');
-  response.send(voiceResponse.toString());
+  const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+  client.calls
+    .create({
+      applicationSid: TWILIO_TWIML_APP_SID,
+      to: 'client:boofus',
+      from: TWILIO_NUMBER
+    })
+    .then((call) => {
+      const voiceResponse = new VoiceResponse();
+      voiceResponse.dial({
+        callerId: TWILIO_NUMBER,
+      }, request.body.number);
+      response.type('text/xml');
+      response.send(voiceResponse.toString());
+    })
+    .done();
 });
 
 const httpServer = require('http').createServer(app);
