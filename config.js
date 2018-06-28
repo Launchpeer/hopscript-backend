@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 module.exports = {
+  PORT: process.env.PORT,
   MONGODB_URI: process.env.MONGODB_URI,
   PARSE_ADMIN_PASSWORD: process.env.PARSE_ADMIN_DASHBOARD_PASSWORD,
   PARSE_ADMIN_USERNAME: process.env.PARSE_ADMIN_DASHBOARD_USERNAME,
@@ -18,4 +19,8 @@ module.exports = {
   S3_SECRET_KEY: process.env.S3_SECRET_KEY,
   S3_ACCESS_KEY: process.env.S3_ACCESS_KEY,
   S3_BUCKET: process.env.S3_BUCKET,
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+  TWILIO_NUMBER: process.env.TWILIO_NUMBER,
+  TWILIO_TWIML_APP_SID: process.env.TWILIO_TWIML_APP_SID
 };

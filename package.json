@@ -20,8 +20,9 @@
   "dependencies": {
     "@parse/s3-files-adapter": "^1.2.1",
     "@sendgrid/mail": "^6.2.1",
+    "body-parser": "^1.18.3",
     "dotenv": "^5.0.1",
-    "express": "^4.16.2",
+    "express": "^4.16.3",
     "http": "0.0.0",
     "mc-stripe-server": "git+https://github.com/liltimtim/mc-stripe-server.git",
     "node-fetch": "^2.1.2",
@@ -34,7 +35,8 @@
     "passport-stripe": "^0.2.2",
     "path": "^0.12.7",
     "request": "^2.85.0",
-    "stripe": "^4.25.0"
+    "stripe": "^4.25.0",
+    "twilio": "^3.17.4"
   },
   "devDependencies": {
     "eslint": "^4.19.1",
