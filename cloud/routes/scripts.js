@@ -557,5 +557,6 @@ Parse.Cloud.define('deleteScript', (req, res) => {
 })
 
 module.exports = {
-  fetchScripts
+  fetchScripts,
+  _fetchScript
 };
