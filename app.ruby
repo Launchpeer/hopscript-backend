@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'sinatra'
 
-get '/inbound' do
+get '/voice' do
   content_type 'text/xml'
-  '<Response><Message>You did it, you big dingo!</Message></Response>'
+  '<Response><Dial callerId="+13182576018">+13236211433</Dial></Response>'
 end

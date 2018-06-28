@@ -11,9 +11,12 @@ const ParseDashboard = require('parse-dashboard');
 const sendgrid = require('parse-server-sendgrid-adapter');
 const S3Adapter = require('@parse/s3-files-adapter');
 const config = require('./config');
+const cors = require('cors');
 
 const app = express();
+app.use(cors());
 require('dotenv').config();
+
 
 const {
   PORT,
