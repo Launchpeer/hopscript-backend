@@ -15,6 +15,17 @@ function _createNewCall(user, title, script, lead, leadGroup) {
   });
 }
 
+function _fetchCall(callId) {
+  return new Promise((resolve) => {
+    const Call = Parse.Object.extend('Call');
+    const query = new Parse.Query(Call);
+    query.include('script');
+    query.include('script.questions');
+    query.include('lead');
+    resolve(query.get(callId));
+  });
+}
+
 
 Parse.Cloud.define('createCall', (req, res) => {
   const { lead, script, title } = req.params.call;
@@ -25,11 +36,20 @@ Parse.Cloud.define('createCall', (req, res) => {
     .then((d) => {
       _createNewCall(req.user, title, d[0], d[1])
         .then((createdCall) => {
-          console.log('createdCall', createdCall)
+          res.success(createdCall);
         })
-        .catch((createNewCallErr) => console.log('CREATE NEW CALL ERR: ', createNewCallErr))
+        .catch((createNewCallErr) => res.error('CREATE NEW CALL ERR: ', createNewCallErr))
     })
     .catch((err) => {
       console.log('promise err', err);
     })
 });
+
+Parse.Cloud.define('fetchCall', (req, res) => {
+  const { callId } = req.params;
+  _fetchCall(callId)
+    .then((d) => {
+      res.success(d);
+    })
+    .catch((fetchCallErr) => res.error('FETCH CALL ERR', fetchCallErr));
+})
