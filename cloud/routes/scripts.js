@@ -49,6 +49,12 @@ function _fetchQuestion(questionId) {
   });
 }
 
+Parse.Cloud.define('fetchQuestion', (req, res) => {
+  _fetchQuestion(req.params.questionId)
+    .then((question) => res.success(question))
+    .catch((fetchQuestionErr) => res.error(fetchQuestionErr));
+})
+
 /**
  A Parse Answer Object is instantiated, body and route are set, and the answer is returned
  * @param  {string} body the answer text
