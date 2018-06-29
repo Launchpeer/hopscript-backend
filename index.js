@@ -144,18 +144,17 @@ app.post('/voice', (request, response) => {
   client.calls
     .create({
       applicationSid: TWILIO_TWIML_APP_SID,
-      to: 'client: lead', // `client: ${request.body.lead.id}`,
+      to: 'client:lead', // `client: ${request.body.lead.id}`,
       from: TWILIO_NUMBER
     })
-    .then((call) => {
+    .then(() => {
       const voiceResponse = new VoiceResponse();
       voiceResponse.dial({
         callerId: TWILIO_NUMBER,
-      }, request.body.number);
-      response.type('text/xml');
+      }, request.body.To);
+      response.set('Content-Type', 'text/xml');
       response.send(voiceResponse.toString());
-    })
-    .done();
+    });
 });
 
 const httpServer = require('http').createServer(app);

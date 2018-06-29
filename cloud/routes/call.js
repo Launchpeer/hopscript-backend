@@ -1,4 +1,3 @@
-const twilio = require('twilio');
 const { _fetchLead } = require('./lead');
 const { _fetchScript } = require('./scripts');
 
