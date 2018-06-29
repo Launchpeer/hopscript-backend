@@ -21,6 +21,7 @@ function _fetchCall(callId) {
     const query = new Parse.Query(Call);
     query.include('script');
     query.include('script.questions');
+    query.include('script.questions.answers');
     query.include('lead');
     resolve(query.get(callId));
   });
