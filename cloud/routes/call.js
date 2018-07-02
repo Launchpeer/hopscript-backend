@@ -54,3 +54,26 @@ Parse.Cloud.define('fetchCall', (req, res) => {
     })
     .catch(fetchCallErr => res.error('FETCH CALL ERR', fetchCallErr));
 });
+
+// updates the call object
+function _updateCall(call, data) {
+  return new Promise((resolve) => {
+    Object.keys(data).forEach((key) => {
+      call.set(key, data[key]);
+    });
+    resolve(call.save());
+  });
+}
+
+
+Parse.Cloud.define('updateCall', (req, res) => {
+  _fetchCall(req.params.callId)
+    .then((call) => {
+      _updateCall(call, req.params)
+        .then((r) => {
+          res.success(r);
+        })
+        .catch(updateCallErr => res.error(updateCallErr));
+    })
+    .catch(fetchCallErr => res.error(fetchCallErr));
+});
