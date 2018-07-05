@@ -138,23 +138,38 @@ app.get('/token', (request, response) => {
   });
 });
 
+app.post('/bot', (request, response) => {
+  const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+  client.conferences('Hopscript').participants(request.body.callSid).update({ announceMethod: 'get', announceUrl: 'http://84e2da52.ngrok.io/conference' })
+    .then(participant => console.log(participant.callSid))
+    .done();
+});
+
+app.get('/conference', (request, response) => {
+  const voiceResponse = new VoiceResponse();
+  voiceResponse.say('HOT DIGGITY DOG MY DUDE');
+  response.set('Content-Type', 'text/xml');
+  response.send(voiceResponse.toString());
+});
+
 // Create TwiML for outbound calls
 app.post('/voice', (request, response) => {
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-  client.calls
-    .create({
-      applicationSid: TWILIO_TWIML_APP_SID,
-      to: 'client:lead', // `client: ${request.body.lead.id}`,
-      from: TWILIO_NUMBER
-    })
+  client.conferences('Hopscript').participants
+    .create({ from: TWILIO_NUMBER, to: '+13236211433' })
     .then(() => {
       const voiceResponse = new VoiceResponse();
-      voiceResponse.dial({
-        callerId: TWILIO_NUMBER,
-      }, request.body.To);
+      const dial = voiceResponse.dial();
+      dial.conference('Hopscript', { endConferenceOnExit: true });
       response.set('Content-Type', 'text/xml');
       response.send(voiceResponse.toString());
     });
+});
+
+Parse.Cloud.define('playAudio', (req) => {
+  const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+  client.calls(req.body.callSid)
+    .update({ method: 'POST', url: 'http://84e2da52.ngrok.io/bot' });
 });
 
 const httpServer = require('http').createServer(app);
