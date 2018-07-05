@@ -23,6 +23,7 @@ function _fetchCall(callId) {
     query.include('script.questions');
     query.include('script.questions.answers');
     query.include('lead');
+    query.include('conferenceSid');
     resolve(query.get(callId));
   });
 }

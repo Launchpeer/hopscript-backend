@@ -139,13 +139,23 @@ app.get('/token', (request, response) => {
 });
 
 app.post('/bot', (request, response) => {
+  const confSID = request.query.confSid;
+  const callSID = request.query.callSid;
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-  client.conferences('Hopscript').participants(request.body.callSid).update({ announceMethod: 'get', announceUrl: 'http://84e2da52.ngrok.io/conference' })
-    .then(participant => console.log(participant.callSid))
+  client
+    .conferences(confSID)
+    .participants(callSID)
+    .update({ announceUrl: 'http://84e2da52.ngrok.io/conference' })
+    .then(data => (data))
     .done();
+  // .then(participant => console.log(participant.callSid))
+  // .done()
+  // .error(err => response.error(err));
+  response.sendStatus(200);
 });
 
-app.get('/conference', (request, response) => {
+app.post('/conference', (request, response) => {
+  console.log('request in conf', request.body);
   const voiceResponse = new VoiceResponse();
   voiceResponse.say('HOT DIGGITY DOG MY DUDE');
   response.set('Content-Type', 'text/xml');
@@ -157,19 +167,17 @@ app.post('/voice', (request, response) => {
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   client.conferences('Hopscript').participants
     .create({ from: TWILIO_NUMBER, to: '+13236211433' })
-    .then(() => {
-      const voiceResponse = new VoiceResponse();
-      const dial = voiceResponse.dial();
-      dial.conference('Hopscript', { endConferenceOnExit: true });
-      response.set('Content-Type', 'text/xml');
-      response.send(voiceResponse.toString());
+    .then((data) => {
+      console.log('request body', request.body);
+      Parse.Cloud.run("updateCall", { callId: request.body.callId, conferenceSid: data.conferenceSid })
+        .then(() => {
+          const voiceResponse = new VoiceResponse();
+          const dial = voiceResponse.dial();
+          dial.conference('Hopscript', { endConferenceOnExit: true });
+          response.set('Content-Type', 'text/xml');
+          response.send(voiceResponse.toString());
+        }).catch(err => console.log('parse err', err));
     });
-});
-
-Parse.Cloud.define('playAudio', (req) => {
-  const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-  client.calls(req.body.callSid)
-    .update({ method: 'POST', url: 'http://84e2da52.ngrok.io/bot' });
 });
 
 const httpServer = require('http').createServer(app);
