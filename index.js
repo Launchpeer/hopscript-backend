@@ -139,7 +139,6 @@ app.get('/token', (request, response) => {
 });
 
 app.post('/bot', (request, response) => {
-  console.log('request', request.query);
   const confSID = request.query.conferenceSid;
   const callSID = request.query.callSid;
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
@@ -149,9 +148,6 @@ app.post('/bot', (request, response) => {
     .update({ announceUrl: 'http://84e2da52.ngrok.io/conference' })
     .then(data => (data))
     .done();
-  // .then(participant => console.log(participant.callSid))
-  // .done()
-  // .error(err => response.error(err));
   response.sendStatus(200);
 });
 
@@ -185,18 +181,7 @@ app.post('/voice', (request, response) => {
     }).catch(err => console.log('parse err', err));
 });
 
-
-app.get('/joinconference', (request, response) => {
-  const voiceResponse = new VoiceResponse();
-  const dial = voiceResponse.dial();
-  dial.conference('Hopscript');
-  response.set('Content-Type', 'text/xml');
-  response.send(voiceResponse.toString());
-});
-
-
 const httpServer = require('http').createServer(app);
-
 
 httpServer.listen(PORT, () => {
   console.log(`parse server running on ${PORT}`);
