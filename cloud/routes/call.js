@@ -9,7 +9,6 @@ function _createNewCall(user, title, script, lead, leadGroup) {
     CObj.set('title', title);
     CObj.set('script', script);
     CObj.set('startTime', new Date().getTime());
-    CObj.set('conferenceSid', null);
     if (lead) { CObj.set('lead', lead); }
     if (leadGroup) { CObj.set('leadGroup', leadGroup); }
     resolve(CObj.save());
@@ -18,13 +17,12 @@ function _createNewCall(user, title, script, lead, leadGroup) {
 
 function _fetchCall(callId) {
   return new Promise((resolve) => {
-    const Call = Parse.Object.extend('Call');
-    const query = new Parse.Query(Call);
-    query.include('script');
-    query.include('script.questions');
-    query.include('script.questions.answers');
-    query.include('lead');
-    resolve(query.get(callId));
+    const callQuery = new Parse.Query('Call');
+    callQuery.include('script');
+    callQuery.include('script.questions');
+    callQuery.include('script.questions.answers');
+    callQuery.include('lead');
+    resolve(callQuery.get(callId));
   });
 }
 

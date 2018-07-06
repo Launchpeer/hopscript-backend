@@ -139,7 +139,8 @@ app.get('/token', (request, response) => {
 });
 
 app.post('/bot', (request, response) => {
-  const confSID = request.query.confSid;
+  console.log('request', request.query);
+  const confSID = request.query.conferenceSid;
   const callSID = request.query.callSid;
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   client
@@ -172,10 +173,15 @@ app.post('/voice', (request, response) => {
       const voiceResponse = new VoiceResponse();
       const dial = voiceResponse.dial();
       dial.conference('Hopscript', { endConferenceOnExit: true });
-      response.set('Content-Type', 'text/xml');
-      response.send(voiceResponse.toString());
       if (request.query.callId) {
-        Parse.Cloud.run("updateCall", ({ callId: request.query.callId, conferenceSid: data.conferenceSid }));
+        Parse.Cloud.run("updateCall", ({ callId: request.query.callId, conferenceSid: data.conferenceSid }))
+          .then(() => {
+            response.set('Content-Type', 'text/xml');
+            response.send(voiceResponse.toString());
+          });
+      } else {
+        response.set('Content-Type', 'text/xml');
+        response.send(voiceResponse.toString());
       }
     }).catch(err => console.log('parse err', err));
 });
