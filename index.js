@@ -166,7 +166,7 @@ app.post('/stop', (request, response) => {
 
 app.post('/conference', (request, response) => {
   const voiceResponse = new VoiceResponse();
-  voiceResponse.play('https://hopscript.s3.amazonaws.com/547592d663ee78352828cb9a2b2b4b15_file.mp3');
+  voiceResponse.play(request.params.audio);
   response.set('Content-Type', 'text/xml');
   response.send(voiceResponse.toString());
 });
