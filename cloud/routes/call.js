@@ -9,6 +9,7 @@ function _createNewCall(user, title, script, lead, leadGroup) {
     CObj.set('title', title);
     CObj.set('script', script);
     CObj.set('startTime', new Date().getTime());
+    CObj.set('conferenceSid', null);
     if (lead) { CObj.set('lead', lead); }
     if (leadGroup) { CObj.set('leadGroup', leadGroup); }
     resolve(CObj.save());
@@ -23,7 +24,6 @@ function _fetchCall(callId) {
     query.include('script.questions');
     query.include('script.questions.answers');
     query.include('lead');
-    query.include('conferenceSid');
     resolve(query.get(callId));
   });
 }
@@ -60,7 +60,9 @@ Parse.Cloud.define('fetchCall', (req, res) => {
 function _updateCall(call, data) {
   return new Promise((resolve) => {
     Object.keys(data).forEach((key) => {
-      call.set(key, data[key]);
+      if (key !== 'callId') {
+        call.set(key, data[key]);
+      }
     });
     resolve(call.save());
   });
