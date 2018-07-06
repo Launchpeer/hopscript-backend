@@ -156,9 +156,8 @@ app.post('/bot', (request, response) => {
 });
 
 app.post('/conference', (request, response) => {
-  console.log('request in /conf!!!!!!!!!!!!!!', request.body);
   const voiceResponse = new VoiceResponse();
-  voiceResponse.say('HOT DIGGITY DOG MY DUDE');
+  voiceResponse.play('https://hopscript.s3.amazonaws.com/547592d663ee78352828cb9a2b2b4b15_file.mp3');
   response.set('Content-Type', 'text/xml');
   response.send(voiceResponse.toString());
 });
