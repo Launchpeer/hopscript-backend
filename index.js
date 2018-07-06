@@ -151,6 +151,19 @@ app.post('/bot', (request, response) => {
   response.sendStatus(200);
 });
 
+app.post('/stop', (request, response) => {
+  const confSID = request.query.conferenceSid;
+  const callSID = request.query.callSid;
+  const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+  client
+    .conferences(confSID)
+    .participants(callSID)
+    .update({ announceUrl: 'http://84e2da52.ngrok.io/stopaudio' })
+    .then(data => (data))
+    .done();
+  response.sendStatus(200);
+});
+
 app.post('/conference', (request, response) => {
   const voiceResponse = new VoiceResponse();
   voiceResponse.play('https://hopscript.s3.amazonaws.com/547592d663ee78352828cb9a2b2b4b15_file.mp3');
@@ -158,6 +171,12 @@ app.post('/conference', (request, response) => {
   response.send(voiceResponse.toString());
 });
 
+app.post('/stopaudio', (request, response) => {
+  const voiceResponse = new VoiceResponse();
+  voiceResponse.say(' ');
+  response.set('Content-Type', 'text/xml');
+  response.send(voiceResponse.toString());
+});
 
 // Create TwiML for outbound calls
 app.post('/voice', (request, response) => {
