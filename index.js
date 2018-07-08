@@ -179,16 +179,13 @@ app.post('/stopaudio', (request, response) => {
   response.send(voiceResponse.toString());
 });
 
-
 // Create TwiML for outbound calls
-app.post('/voice', (request, response) => {
-  console.log('/VOICE NUMBER: ', request.body);
+app.post('/start-call', (request, response) => {
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   if (request.body.number) {
     client.conferences('Hopscript').participants
       .create({ from: TWILIO_NUMBER, to: request.body.number })
       .then((data) => {
-        console.log('CALL DATA', data);
         const voiceResponse = new VoiceResponse();
         const dial = voiceResponse.dial();
         dial.conference('Hopscript', { endConferenceOnExit: true });
@@ -207,6 +204,12 @@ app.post('/voice', (request, response) => {
         }
       }).catch(err => console.log('CREATE CONFERENCE ERR', err));
   }
+});
+
+// Create TwiML for outbound calls
+app.post('/voice', (request, response) => {
+  console.log('/VOICE: ', request.body);
+  response.sendStatus(200);
 });
 
 
