@@ -145,7 +145,7 @@ app.post('/bot', (request, response) => {
   client
     .conferences(confSID)
     .participants(callSID)
-    .update({ announceUrl: 'http://84e2da52.ngrok.io/conference' })
+    .update({ announceUrl: 'https://swiftscript-backend-qa.herokuapp.com/conference' })
     .then(data => (data))
     .done();
   response.sendStatus(200);
@@ -158,7 +158,7 @@ app.post('/stop', (request, response) => {
   client
     .conferences(confSID)
     .participants(callSID)
-    .update({ announceUrl: 'http://84e2da52.ngrok.io/stopaudio' })
+    .update({ announceUrl: 'https://swiftscript-backend-qa.herokuapp.com/stopaudio' })
     .then(data => (data))
     .done();
   response.sendStatus(200);
@@ -181,25 +181,31 @@ app.post('/stopaudio', (request, response) => {
 
 // Create TwiML for outbound calls
 app.post('/voice', (request, response) => {
+  console.log('/VOICE NUMBER: ', request.query.number);
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-  client.conferences('Hopscript').participants
-    .create({ from: TWILIO_NUMBER, to: request.query.number })
-    .then((data) => {
-      const voiceResponse = new VoiceResponse();
-      const dial = voiceResponse.dial();
-      dial.conference('Hopscript', { endConferenceOnExit: true });
+  if (request.query.number) {
+    client.conferences('Hopscript').participants
+      .create({ from: TWILIO_NUMBER, to: request.query.number })
+      .then((data) => {
+        console.log('CALL DATA', data);
+        const voiceResponse = new VoiceResponse();
+        const dial = voiceResponse.dial();
+        dial.conference('Hopscript', { endConferenceOnExit: true });
 
-      if (request.query.callId) {
-        Parse.Cloud.run("updateCall", ({ callId: request.query.callId, conferenceSid: data.conferenceSid }))
-          .then(() => {
-            response.set('Content-Type', 'text/xml');
-            response.send(voiceResponse.toString());
-          });
-      } else {
-        response.set('Content-Type', 'text/xml');
-        response.send(voiceResponse.toString());
-      }
-    }).catch(err => console.log('parse err', err));
+        if (request.query.callId) {
+          console.log('REQ CALL ID: ', request.query.callId);
+          console.log('REQ CONF ID: ', data.conferenceSid);
+          Parse.Cloud.run("updateCall", ({ callId: request.query.callId, conferenceSid: data.conferenceSid }))
+            .then(() => {
+              response.set('Content-Type', 'text/xml');
+              response.send(voiceResponse.toString());
+            });
+        } else {
+          response.set('Content-Type', 'text/xml');
+          response.send(voiceResponse.toString());
+        }
+      }).catch(err => console.log('CREATE CONFERENCE ERR', err));
+  }
 });
 
 
