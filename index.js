@@ -146,7 +146,7 @@ app.post('/bot', (request, response) => {
   client
     .conferences(conferenceSid)
     .participants(callSid)
-    .update({ announceMethod: 'GET', announceUrl: `https://swiftscript-backend-qa.herokuapp.com/conference?audio-url=${audioUrl}` })
+    .update({ announceMethod: 'GET', announceUrl: `https://swiftscript-backend-qa.herokuapp.com/conference?audio=${audioUrl}` })
     .then(data => (data))
     .done();
   response.sendStatus(200);
@@ -167,7 +167,7 @@ app.post('/stop', (request, response) => {
 
 app.get('/conference', (request, response) => {
   const voiceResponse = new VoiceResponse();
-  voiceResponse.play(request.params.audioUrl);
+  voiceResponse.play(request.params.audio);
   response.set('Content-Type', 'text/xml');
   response.send(voiceResponse.toString());
 });
