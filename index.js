@@ -166,8 +166,9 @@ app.post('/stop', (request, response) => {
 });
 
 app.get('/conference', (request, response) => {
+  console.log('conference', request.query);
   const voiceResponse = new VoiceResponse();
-  voiceResponse.play(request.params.audio);
+  voiceResponse.play(request.query.audio);
   response.set('Content-Type', 'text/xml');
   response.send(voiceResponse.toString());
 });
