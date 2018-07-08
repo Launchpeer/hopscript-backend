@@ -181,21 +181,21 @@ app.post('/stopaudio', (request, response) => {
 
 // Create TwiML for outbound calls
 app.post('/voice', (request, response) => {
-  console.log('/VOICE NUMBER: ', request.query.number);
+  console.log('/VOICE NUMBER: ', request.data.number);
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-  if (request.query.number) {
+  if (request.data.number) {
     client.conferences('Hopscript').participants
-      .create({ from: TWILIO_NUMBER, to: request.query.number })
+      .create({ from: TWILIO_NUMBER, to: request.data.number })
       .then((data) => {
         console.log('CALL DATA', data);
         const voiceResponse = new VoiceResponse();
         const dial = voiceResponse.dial();
         dial.conference('Hopscript', { endConferenceOnExit: true });
 
-        if (request.query.callId) {
-          console.log('REQ CALL ID: ', request.query.callId);
+        if (request.data.callId) {
+          console.log('REQ CALL ID: ', request.data.callId);
           console.log('REQ CONF ID: ', data.conferenceSid);
-          Parse.Cloud.run("updateCall", ({ callId: request.query.callId, conferenceSid: data.conferenceSid }))
+          Parse.Cloud.run("updateCall", ({ callId: request.data.callId, conferenceSid: data.conferenceSid }))
             .then(() => {
               response.set('Content-Type', 'text/xml');
               response.send(voiceResponse.toString());
