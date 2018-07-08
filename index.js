@@ -145,7 +145,7 @@ app.post('/bot', (request, response) => {
   client
     .conferences(confSID)
     .participants(callSID)
-    .update({ announceUrl: 'http://swiftscript-backend-qa.herokuapp.com/conference' })
+    .update({ announceUrl: 'https://swiftscript-backend-qa.herokuapp.com/conference' })
     .then(data => (data))
     .done();
   response.sendStatus(200);
@@ -158,7 +158,7 @@ app.post('/stop', (request, response) => {
   client
     .conferences(confSID)
     .participants(callSID)
-    .update({ announceUrl: 'http://swiftscript-backend-qa.herokuapp.com/stopaudio' })
+    .update({ announceUrl: 'https://swiftscript-backend-qa.herokuapp.com/stopaudio' })
     .then(data => (data))
     .done();
   response.sendStatus(200);
