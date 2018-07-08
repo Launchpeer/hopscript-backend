@@ -15,7 +15,8 @@ const config = require('./config');
 const cors = require('cors');
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 app.use(cors());
 require('dotenv').config();
 
@@ -181,7 +182,7 @@ app.post('/stopaudio', (request, response) => {
 
 // Create TwiML for outbound calls
 app.post('/voice', (request, response) => {
-  console.log('/VOICE NUMBER: ', request.body.number);
+  console.log('/VOICE NUMBER: ', request.body);
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   if (request.body.number) {
     client.conferences('Hopscript').participants
