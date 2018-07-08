@@ -140,13 +140,13 @@ app.get('/token', (request, response) => {
 });
 
 app.post('/bot', (request, response) => {
-  const confSID = request.query.conferenceSid;
-  const callSID = request.query.callSid;
+  const { conferenceSid, callSid, audioUrl } = request.body;
+  console.log('/BOT BODY', request.body);
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   client
-    .conferences(confSID)
-    .participants(callSID)
-    .update({ announceUrl: 'https://swiftscript-backend-qa.herokuapp.com/conference' })
+    .conferences(conferenceSid)
+    .participants(callSid)
+    .update({ announceMethod: 'GET', announceUrl: `https://swiftscript-backend-qa.herokuapp.com/conference?audio=${audioUrl}` })
     .then(data => (data))
     .done();
   response.sendStatus(200);
@@ -165,7 +165,7 @@ app.post('/stop', (request, response) => {
   response.sendStatus(200);
 });
 
-app.post('/conference', (request, response) => {
+app.get('/conference', (request, response) => {
   const voiceResponse = new VoiceResponse();
   voiceResponse.play(request.params.audio);
   response.set('Content-Type', 'text/xml');
