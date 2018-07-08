@@ -183,7 +183,7 @@ app.post('/stopaudio', (request, response) => {
 app.post('/voice', (request, response) => {
   console.log('/VOICE NUMBER: ', request.data.number);
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-  if (request.query.number) {
+  if (request.data.number) {
     client.conferences('Hopscript').participants
       .create({ from: TWILIO_NUMBER, to: request.data.number })
       .then((data) => {
