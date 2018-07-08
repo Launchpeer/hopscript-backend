@@ -165,7 +165,7 @@ app.post('/stop', (request, response) => {
   response.sendStatus(200);
 });
 
-app.get('/conference/:audio-url', (request, response) => {
+app.get('/conference', (request, response) => {
   const voiceResponse = new VoiceResponse();
   voiceResponse.play(request.params.audioUrl);
   response.set('Content-Type', 'text/xml');
