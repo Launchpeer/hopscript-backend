@@ -186,21 +186,13 @@ app.post('/start-call', (request, response) => {
     client.conferences('Hopscript').participants
       .create({ from: TWILIO_NUMBER, to: request.body.number })
       .then((data) => {
-        const voiceResponse = new VoiceResponse();
-        const dial = voiceResponse.dial();
-        dial.conference('Hopscript', { endConferenceOnExit: true });
-
         if (request.body.callId) {
-          console.log('REQ CALL ID: ', request.body.callId);
-          console.log('REQ CONF ID: ', data.conferenceSid);
           Parse.Cloud.run("updateCall", ({ callId: request.body.callId, conferenceSid: data.conferenceSid }))
             .then(() => {
-              response.set('Content-Type', 'text/xml');
-              response.send(voiceResponse.toString());
+              response.sendStatus(200);
             });
         } else {
-          response.set('Content-Type', 'text/xml');
-          response.send(voiceResponse.toString());
+          response.sendStatus(200);
         }
       }).catch(err => console.log('CREATE CONFERENCE ERR', err));
   }
@@ -208,8 +200,11 @@ app.post('/start-call', (request, response) => {
 
 // Create TwiML for outbound calls
 app.post('/voice', (request, response) => {
-  console.log('/VOICE: ', request.body);
-  response.sendStatus(200);
+  const voiceResponse = new VoiceResponse();
+  const dial = voiceResponse.dial();
+  dial.conference('Hopscript', { endConferenceOnExit: true });
+  response.set('Content-Type', 'text/xml');
+  response.send(voiceResponse.toString());
 });
 
 
