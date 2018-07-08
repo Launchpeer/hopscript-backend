@@ -138,27 +138,80 @@ app.get('/token', (request, response) => {
   });
 });
 
+app.post('/bot', (request, response) => {
+  const confSID = request.query.conferenceSid;
+  const callSID = request.query.callSid;
+  const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+  client
+    .conferences(confSID)
+    .participants(callSID)
+    .update({ announceUrl: 'http://84e2da52.ngrok.io/conference' })
+    .then(data => (data))
+    .done();
+  response.sendStatus(200);
+});
+
+app.post('/stop', (request, response) => {
+  const confSID = request.query.conferenceSid;
+  const callSID = request.query.callSid;
+  const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+  client
+    .conferences(confSID)
+    .participants(callSID)
+    .update({ announceUrl: 'http://84e2da52.ngrok.io/stopaudio' })
+    .then(data => (data))
+    .done();
+  response.sendStatus(200);
+});
+
+app.post('/conference', (request, response) => {
+  const voiceResponse = new VoiceResponse();
+  voiceResponse.play(request.params.audio);
+  response.set('Content-Type', 'text/xml');
+  response.send(voiceResponse.toString());
+});
+
+app.post('/stopaudio', (request, response) => {
+  const voiceResponse = new VoiceResponse();
+  voiceResponse.say(' ');
+  response.set('Content-Type', 'text/xml');
+  response.send(voiceResponse.toString());
+});
+
+
 // Create TwiML for outbound calls
 app.post('/voice', (request, response) => {
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
-  client.calls
-    .create({
-      applicationSid: TWILIO_TWIML_APP_SID,
-      to: 'client:lead', // `client: ${request.body.lead.id}`,
-      from: TWILIO_NUMBER
-    })
-    .then(() => {
+  client.conferences('Hopscript').participants
+    .create({ from: TWILIO_NUMBER, to: request.query.number })
+    .then((data) => {
       const voiceResponse = new VoiceResponse();
-      voiceResponse.dial({
-        callerId: TWILIO_NUMBER,
-      }, request.body.To);
-      response.set('Content-Type', 'text/xml');
-      response.send(voiceResponse.toString());
-    });
+      const dial = voiceResponse.dial();
+      dial.conference('Hopscript', { endConferenceOnExit: true });
+
+      if (request.query.callId) {
+        Parse.Cloud.run("updateCall", ({ callId: request.query.callId, conferenceSid: data.conferenceSid }))
+          .then(() => {
+            response.set('Content-Type', 'text/xml');
+            response.send(voiceResponse.toString());
+          });
+      } else {
+        response.set('Content-Type', 'text/xml');
+        response.send(voiceResponse.toString());
+      }
+    }).catch(err => console.log('parse err', err));
+});
+
+
+app.post('/joinconference', (request, response) => {
+  const voiceResponse = new VoiceResponse();
+  const dial = voiceResponse.dial();
+  dial.conference('Hopscript', { endConferenceOnExit: true });
+  response.set('Content-Type', 'text/xml');
+  response.send(voiceResponse.toString());
 });
 
 const httpServer = require('http').createServer(app);
-
 
 httpServer.listen(PORT, () => {
   console.log(`parse server running on ${PORT}`);

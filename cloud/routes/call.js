@@ -17,13 +17,12 @@ function _createNewCall(user, title, script, lead, leadGroup) {
 
 function _fetchCall(callId) {
   return new Promise((resolve) => {
-    const Call = Parse.Object.extend('Call');
-    const query = new Parse.Query(Call);
-    query.include('script');
-    query.include('script.questions');
-    query.include('script.questions.answers');
-    query.include('lead');
-    resolve(query.get(callId));
+    const callQuery = new Parse.Query('Call');
+    callQuery.include('script');
+    callQuery.include('script.questions');
+    callQuery.include('script.questions.answers');
+    callQuery.include('lead');
+    resolve(callQuery.get(callId));
   });
 }
 
@@ -59,7 +58,9 @@ Parse.Cloud.define('fetchCall', (req, res) => {
 function _updateCall(call, data) {
   return new Promise((resolve) => {
     Object.keys(data).forEach((key) => {
-      call.set(key, data[key]);
+      if (key !== 'callId') {
+        call.set(key, data[key]);
+      }
     });
     resolve(call.save());
   });
