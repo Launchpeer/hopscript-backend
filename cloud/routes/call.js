@@ -1,6 +1,6 @@
 const { _fetchLead } = require('./lead');
 const { _fetchScript } = require('./scripts');
-
+const { fetchLeadGroup } = require('./leadgroups');
 
 function _createNewCall(user, title, script, lead, leadGroup) {
   return new Promise((resolve) => {
@@ -54,15 +54,26 @@ Parse.Cloud.define('fetchCall', (req, res) => {
     .catch(fetchCallErr => res.error('FETCH CALL ERR', fetchCallErr));
 });
 
+function _setValues(call, data, key) {
+  return new Promise((resolve) => {
+    if (key === 'leadGroup' && key.length > 0) {
+      fetchLeadGroup(data[key])
+        .then((res) => {
+          call.set(key, res);
+          resolve(call.save());
+        })
+        .catch(err => console.log('FETCH LEAD GROUP ERR', err));
+    } else if (key !== 'callId') {
+      call.set(key, data[key]);
+      resolve(call.save());
+    }
+  });
+}
+
 // updates the call object
 function _updateCall(call, data) {
   return new Promise((resolve) => {
-    Object.keys(data).forEach((key) => {
-      if (key !== 'callId') {
-        call.set(key, data[key]);
-      }
-    });
-    resolve(call.save());
+    resolve(Promise.all(Object.keys(data).map(key => (_setValues(call, data, key)))));
   });
 }
 
