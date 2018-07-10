@@ -15,6 +15,8 @@ const { fetchUser } = require('../main');
 const fetchHistory = user => new Promise((resolve) => {
   const historyQuery = new Parse.Query("Call");
   historyQuery.equalTo('agent', user);
+  historyQuery.include('lead');
+  historyQuery.ascending('createdAt');
   resolve(historyQuery.find(null, { userMasterKey: true }));
 });
 
