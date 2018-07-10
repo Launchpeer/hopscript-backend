@@ -5,5 +5,6 @@ module.exports = {
   lead: require('./routes/lead'),
   leadgroups: require('./routes/leadgroups'),
   main: require('./main'),
-  call: require('./routes/call')
+  call: require('./routes/call'),
+  history: require('./routes/history')
 };
