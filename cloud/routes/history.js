@@ -16,12 +16,14 @@ const fetchHistory = user => new Promise((resolve) => {
   const historyQuery = new Parse.Query("Call");
   historyQuery.equalTo('agent', user);
   historyQuery.include('lead');
-  historyQuery.ascending('createdAt');
+  historyQuery.descending('endTime');
   resolve(historyQuery.find(null, { userMasterKey: true }));
 });
 
 Parse.Cloud.define('fetchHistory', (req, res) => {
   fetchHistory(req.user)
-    .then(calls => res.success(calls))
+    .then((calls) => {
+      res.success(calls);
+    })
     .catch(err => res.error(err));
 });
