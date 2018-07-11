@@ -88,7 +88,7 @@ Parse.Cloud.define('createLeadInLeadGroup', (req, res) => {
     .catch((fetchLeadGroupErr) => {
       res.error(fetchLeadGroupErr);
     });
-})
+});
 
 Parse.Cloud.define('createLead', (req, res) => {
   const { lead } = req.params;
@@ -126,6 +126,7 @@ Parse.Cloud.define('createLead', (req, res) => {
 const _fetchLead = leadId => new Promise((resolve) => {
   const leadQuery = new Parse.Query('Lead');
   leadQuery.include('leadGroups');
+  leadQuery.include('lastCall');
   resolve(leadQuery.get(leadId));
 });
 

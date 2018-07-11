@@ -1,5 +1,3 @@
-const { fetchUser } = require('../main');
-
 /**
  * As an agent I want to fetch my Call History
  * We query the database for Calls, checking to see if the Call's Agent
@@ -40,11 +38,19 @@ const fetchCalls = lead => new Promise((resolve) => {
   resolve(callQuery.find(null, { userMasterKey: true }));
 });
 
+const setLastCall = (lead, call) => new Promise((resolve) => {
+  lead.set('lastContact', call.attributes.endTime);
+  lead.set('lastCallNotes', call.attributes.notes);
+  lead.set('lastCallTitle', call.attributes.title);
+  resolve(lead.save());
+});
+
 
 Parse.Cloud.define('fetchLastLeadCall', (req, res) => {
   fetchLead(req.params.lead).then((lead) => {
     fetchCalls(lead).then((calls) => {
-      res.success(calls[0]);
-    });
-  });
+      setLastCall(lead, calls[0]);
+      res.success();
+    }).catch(err => res.error(err));
+  }).catch(err => res.error(err));
 });
