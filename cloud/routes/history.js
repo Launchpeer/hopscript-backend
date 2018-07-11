@@ -25,32 +25,3 @@ Parse.Cloud.define('fetchHistory', (req, res) => {
     })
     .catch(err => res.error(err));
 });
-
-const fetchLead = lead => new Promise((resolve) => {
-  const leadQuery = new Parse.Query('Lead');
-  resolve(leadQuery.get(lead));
-});
-
-const fetchCalls = lead => new Promise((resolve) => {
-  const callQuery = new Parse.Query('Call');
-  callQuery.equalTo('lead', lead);
-  callQuery.descending('endTime');
-  resolve(callQuery.find(null, { userMasterKey: true }));
-});
-
-const setLastCall = (lead, call) => new Promise((resolve) => {
-  lead.set('lastContact', call.attributes.endTime);
-  lead.set('lastCallNotes', call.attributes.notes);
-  lead.set('lastCallTitle', call.attributes.title);
-  resolve(lead.save());
-});
-
-
-Parse.Cloud.define('fetchLastLeadCall', (req, res) => {
-  fetchLead(req.params.lead).then((lead) => {
-    fetchCalls(lead).then((calls) => {
-      setLastCall(lead, calls[0]);
-      res.success();
-    }).catch(err => res.error(err));
-  }).catch(err => res.error(err));
-});
