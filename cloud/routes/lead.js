@@ -185,6 +185,9 @@ function _updateLead(lead, data) {
       if (key === 'leadGroup') {
         reconcileLeadToLeadGroup(lead, data.leadGroup)
           .then(() => reconcileLeadGroupToLead(lead, data.leadGroup));
+      } else if (key === 'phone') {
+        const formattedPhone = `+1${data.phone}`;
+        lead.set(key, formattedPhone);
       } else if (key !== 'lead') {
         lead.set(key, data[key]);
       }
