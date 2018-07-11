@@ -180,7 +180,7 @@ app.post('/stopaudio', (request, response) => {
 app.post('/start-call', (request, response) => {
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   if (request.body.number) {
-    client.conferences('Hopscript').participants
+    client.conferences(request.body.conferenceName).participants
       .create({ from: TWILIO_NUMBER, to: request.body.number })
       .then((data) => {
         if (request.body.callId) {
@@ -199,7 +199,7 @@ app.post('/start-call', (request, response) => {
 app.post('/voice', (request, response) => {
   const voiceResponse = new VoiceResponse();
   const dial = voiceResponse.dial();
-  dial.conference('Hopscript', { endConferenceOnExit: true });
+  dial.conference(request.body.conferenceName, { endConferenceOnExit: true });
   response.set('Content-Type', 'text/xml');
   response.send(voiceResponse.toString());
 });
@@ -208,7 +208,7 @@ app.post('/voice', (request, response) => {
 app.post('/joinconference', (request, response) => {
   const voiceResponse = new VoiceResponse();
   const dial = voiceResponse.dial();
-  dial.conference('Hopscript', { endConferenceOnExit: true });
+  dial.conference(request.body.conferenceName, { endConferenceOnExit: true });
   response.set('Content-Type', 'text/xml');
   response.send(voiceResponse.toString());
 });
