@@ -27,3 +27,24 @@ Parse.Cloud.define('fetchHistory', (req, res) => {
     })
     .catch(err => res.error(err));
 });
+
+const fetchLead = lead => new Promise((resolve) => {
+  const leadQuery = new Parse.Query('Lead');
+  resolve(leadQuery.get(lead));
+});
+
+const fetchCalls = lead => new Promise((resolve) => {
+  const callQuery = new Parse.Query('Call');
+  callQuery.equalTo('lead', lead);
+  callQuery.descending('endTime');
+  resolve(callQuery.find(null, { userMasterKey: true }));
+});
+
+
+Parse.Cloud.define('fetchLastLeadCall', (req, res) => {
+  fetchLead(req.params.lead).then((lead) => {
+    fetchCalls(lead).then((calls) => {
+      res.success(calls[0]);
+    });
+  });
+});

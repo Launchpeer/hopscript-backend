@@ -150,19 +150,18 @@ app.post('/bot', (request, response) => {
   response.sendStatus(200);
 });
 
-// `https://swiftscript-backend-qa.herokuapp.com/conference?audio=${audioUrl}`
+
 app.post('/stop', (request, response) => {
   const confSID = request.body.conferenceSid;
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   client
     .conferences(confSID)
-    .update({ announceUrl: 'http://b373628f.ngrok.io/stopaudio' })
+    .update({ announceUrl: `https://swiftscript-backend-qa.herokuapp.com/conference?audio=${audioUrl}` })
     .then(data => (data))
     .done();
   response.sendStatus(200);
 });
 
-// https://swiftscript-backend-qa.herokuapp.com/stopaudio
 app.get('/conference', (request, response) => {
   const voiceResponse = new VoiceResponse();
   voiceResponse.play(request.query.audio);
