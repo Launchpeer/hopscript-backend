@@ -1,23 +1,5 @@
 const { fetchUser } = require('../main');
 
-// This function is used to trigger an update to the Script //
-// This is handy when you update a pointer and want the Script live query to know to update itself //
-
-function _incrementScriptUpdate(scriptId) {
-  return new Promise((resolve) => {
-    const Script = Parse.Object.extend('Script');
-    const query = new Parse.Query(Script);
-    query.get(scriptId)
-      .then((script) => {
-        script.increment('updates');
-        resolve(script.save());
-      })
-      .catch((err) => {
-        console.log('increment scriptupdate', err);
-      });
-  });
-}
-
 function _createNewQuestion(data) {
   return new Promise((resolve) => {
     const Question = Parse.Object.extend('Question');
@@ -51,9 +33,9 @@ function _fetchQuestion(questionId) {
 
 Parse.Cloud.define('fetchQuestion', (req, res) => {
   _fetchQuestion(req.params.questionId)
-    .then((question) => res.success(question))
-    .catch((fetchQuestionErr) => res.error(fetchQuestionErr));
-})
+    .then(question => res.success(question))
+    .catch(fetchQuestionErr => res.error(fetchQuestionErr));
+});
 
 /**
  A Parse Answer Object is instantiated, body and route are set, and the answer is returned
@@ -239,20 +221,20 @@ function _fetchAndUpdateQuestion(id, data) {
         });
         resolve(question.save());
       })
-      .catch((fetchQuestionErr) => console.log('FETCH QUESTION ERR: ', fetchQuestionErr))
-    })
+      .catch(fetchQuestionErr => console.log('FETCH QUESTION ERR: ', fetchQuestionErr));
+  });
 }
 Parse.Cloud.define('updateQuestion', (req, res) => {
   _fetchAndUpdateQuestion(req.params.questionId, req.params.data)
     .then(() => {
       _fetchScript(req.params.scriptId)
         .then((script) => {
-          res.success(script)
+          res.success(script);
         })
-        .catch((fetchScriptErr) => console.log('FETCH SCRIPT ERR: ', fetchScriptErr))
+        .catch(fetchScriptErr => console.log('FETCH SCRIPT ERR: ', fetchScriptErr));
     })
-    .catch((fetchAndUpdateQuestionErr) => console.log('FETCH AND UPDATE QUESTION ERR: ', fetchAndUpdateQuestionErr))
-})
+    .catch(fetchAndUpdateQuestionErr => console.log('FETCH AND UPDATE QUESTION ERR: ', fetchAndUpdateQuestionErr));
+});
 
 /**
  * As an agent, I want to add an Answer to my Script Question
@@ -280,7 +262,7 @@ function _createAndReconcileAnswer(answer, questionId) {
 }
 Parse.Cloud.define('createNewAnswer', (req, res) => {
   _createAndReconcileAnswer(req.params.data, req.params.questionId)
-    .then((question) => {
+    .then(() => {
       _fetchScript(req.params.scriptId)
         .then((script) => {
           res.success(script);
@@ -294,7 +276,7 @@ Parse.Cloud.define('createNewAnswer', (req, res) => {
 function _saveAnswerAndFetchScript(answer, scriptId) {
   return new Promise((resolve) => {
     answer.save()
-      .then((answer) => {
+      .then(() => {
         resolve(_fetchScript(scriptId));
       });
   });
@@ -444,7 +426,7 @@ function _deleteQuestion(question) {
 Parse.Cloud.define('deleteQuestion', (req, res) => {
   _fetchQuestion(req.params.question)
     .then((q) => {
-      if(q.attributes.answers) {
+      if (q.attributes.answers) {
         Promise.all(q.attributes.answers.map(answer => _deleteAnswer(answer)))
           .then(() => {
             _deleteQuestion(q)
@@ -466,43 +448,31 @@ Parse.Cloud.define('deleteQuestion', (req, res) => {
 });
 
 function _dissociateScriptFromUser(script, userId) {
- return new Promise((resolve) => {
-   fetchUser(userId)
-     .then((user) => {
-       user.remove("scripts", script);
-       resolve(user.save(null, { useMasterKey: true }));
-     })
-     .catch((err) => {
-       console.log('FETCH USER ERR: ', err);
-     })
- });
+  return new Promise((resolve) => {
+    fetchUser(userId)
+      .then((user) => {
+        user.remove("scripts", script);
+        resolve(user.save(null, { useMasterKey: true }));
+      })
+      .catch((err) => {
+        console.log('FETCH USER ERR: ', err);
+      });
+  });
 }
 
 function _deleteScript(script) {
- return new Promise((resolve) => {
-   resolve(script.destroy({ useMasterKey: true }));
- });
+  return new Promise((resolve) => {
+    resolve(script.destroy({ useMasterKey: true }));
+  });
 }
 
 function _deleteScriptAndUpdate(script, user) {
- return new Promise((resolve) => {
-   _deleteScript(script)
-     .then(() => {
-       resolve(fetchScripts(user));
-     })
- })
-}
-
-function _fetchAndDeleteQuestion(id) {
   return new Promise((resolve) => {
-    _fetchQuestion(id)
-      .then((question) => {
-        resolve(_deleteQuestion(question));
-      })
-      .catch((fetchQuestionErr) => {
-        console.log('FETCH QUESTION ERR: ', fetchQuestionErr);
-      })
-  })
+    _deleteScript(script)
+      .then(() => {
+        resolve(fetchScripts(user));
+      });
+  });
 }
 
 // fetch question
@@ -512,55 +482,55 @@ function _fetchAndDeleteQuestion(id) {
 
 function _deleteAnswersAndDeleteQuestion(question) {
   return new Promise((resolve) => {
-    if(question.attributes.answers) {
+    if (question.attributes.answers) {
       Promise.all(question.attributes.answers.map(answer => _deleteAnswer(answer)))
         .then(() => {
           resolve(_deleteQuestion(question));
         })
         .catch((deleteAnswerErr) => {
           console.log('DELETE ANSWER ERR', deleteAnswerErr);
-        })
+        });
     } else {
       resolve(_deleteQuestion(question));
     }
-  })
+  });
 }
 
 Parse.Cloud.define('deleteScript', (req, res) => {
- _fetchScript(req.params.id)
-   .then((script) => {
-     _dissociateScriptFromUser(script, req.user.id)
-       .then(() => {
-         if(script.attributes.questions) {
-           Promise.all(script.attributes.questions.map((question) =>
-           _deleteAnswersAndDeleteQuestion(question)))
-             .then(() => {
-               _deleteScriptAndUpdate(script, req.user)
-                 .then((scripts) => {
-                   res.success(scripts)
-                 })
-                 .catch((deleteScriptErr) => {
-                   res.error('DELETE SCRIPT ERR: ', deleteScriptErr)
-                 })
-             })
-             .catch((deleteQuestionErr) => {
-               res.error('DELETE QUESTION ERR: ', deleteQuestionErr)
-             })
-         } else {
-           _deleteScriptAndUpdate(script, req.user)
-             .then((scripts) => {
-               res.success(scripts)
-             })
-             .catch((deleteScriptErr) => {
-               res.error('DELETE SCRIPT ERR: ', deleteScriptErr)
-             })
-         }
-       })
-       .catch((dissociateScriptFromUserErr) => {
-         res.error('DISSOCIATE SCRIPT FROM USER ERR: ', dissociateScriptFromUserErr)
-       })
-   })
-})
+  _fetchScript(req.params.id)
+    .then((script) => {
+      _dissociateScriptFromUser(script, req.user.id)
+        .then(() => {
+          if (script.attributes.questions) {
+            Promise.all(script.attributes.questions.map(question =>
+              _deleteAnswersAndDeleteQuestion(question)))
+              .then(() => {
+                _deleteScriptAndUpdate(script, req.user)
+                  .then((scripts) => {
+                    res.success(scripts);
+                  })
+                  .catch((deleteScriptErr) => {
+                    res.error('DELETE SCRIPT ERR: ', deleteScriptErr);
+                  });
+              })
+              .catch((deleteQuestionErr) => {
+                res.error('DELETE QUESTION ERR: ', deleteQuestionErr);
+              });
+          } else {
+            _deleteScriptAndUpdate(script, req.user)
+              .then((scripts) => {
+                res.success(scripts);
+              })
+              .catch((deleteScriptErr) => {
+                res.error('DELETE SCRIPT ERR: ', deleteScriptErr);
+              });
+          }
+        })
+        .catch((dissociateScriptFromUserErr) => {
+          res.error('DISSOCIATE SCRIPT FROM USER ERR: ', dissociateScriptFromUserErr);
+        });
+    });
+});
 
 module.exports = {
   fetchScripts,

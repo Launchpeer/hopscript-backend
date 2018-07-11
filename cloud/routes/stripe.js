@@ -3,7 +3,7 @@ const config = require('../../config');
 const request = require('request');
 const fetch = require("node-fetch");
 
-const { STRIPE_API_KEY, STRIPE_PUBLISHABLE_KEY } = config;
+const { STRIPE_API_KEY } = config;
 const Stripe = require('stripe')(STRIPE_API_KEY);
 
 Parse.Cloud.define('getStripeConnectId', (req, res) => {
@@ -33,21 +33,28 @@ Parse.Cloud.define('getBalanceHistory', (req, res) => {
   });
 });
 
-function _getStripeToken({ number , expMonth, expYear, cvc}) {
+function _getStripeToken({
+  number,
+  expMonth,
+  expYear,
+  cvc
+}) {
   return new Promise((resolve) => {
-    fetch(`https://api.stripe.com/v1/tokens?card[number]=${number}&card[exp_month]=${expMonth}&card[exp_year]=${expYear}&card[cvc]=${cvc}`,
+    fetch(
+      `https://api.stripe.com/v1/tokens?card[number]=${number}&card[exp_month]=${expMonth}&card[exp_year]=${expYear}&card[cvc]=${cvc}`,
       {
-         method: 'POST',
-         headers: {
-           'Content-Type': 'application/x-www-form-urlencoded',
-           'Authorization': `Bearer ${STRIPE_API_KEY}`
-         }
-     })
-     .then(r => {
-       r.json()
-        .then(c => resolve(c.id))
-     })
-  })
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Bearer ${STRIPE_API_KEY}`
+        }
+      }
+    )
+      .then((r) => {
+        r.json()
+          .then(c => resolve(c.id));
+      });
+  });
 }
 
 Parse.Cloud.define('createStripeCustomer', (req, res) => {
@@ -67,7 +74,7 @@ Parse.Cloud.define('createStripeCustomer', (req, res) => {
         .catch((err) => {
           res.error(err);
         });
-    })
+    });
 });
 
 Parse.Cloud.define('updateStripeCustomer', (req, res) => {
