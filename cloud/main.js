@@ -14,14 +14,13 @@ Parse.Cloud.define('resetPassword', (req, response) => {
   const query = new Parse.Query(Parse.User);
 
   query.equalTo('username', req.params.username);
-
   query.first({
     useMasterKey: true,
     success(user) {
       const newPassword = req.params.password;
 
       user.setPassword(newPassword);
-
+      user.set('firstLogin', 'true');
       user.save(null, {
         useMasterKey: true,
         success(resUser) {
