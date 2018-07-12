@@ -20,7 +20,7 @@ Parse.Cloud.define('resetPassword', (req, response) => {
       const newPassword = req.params.password;
 
       user.setPassword(newPassword);
-
+      user.set('firstLogin', 'true');
       user.save(null, {
         useMasterKey: true,
         success(resUser) {
