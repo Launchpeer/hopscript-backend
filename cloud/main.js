@@ -14,7 +14,6 @@ Parse.Cloud.define('resetPassword', (req, response) => {
   const query = new Parse.Query(Parse.User);
 
   query.equalTo('username', req.params.username);
-
   query.first({
     useMasterKey: true,
     success(user) {
