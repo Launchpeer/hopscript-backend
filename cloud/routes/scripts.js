@@ -225,7 +225,8 @@ function _fetchAndUpdateQuestion(id, data) {
   });
 }
 Parse.Cloud.define('updateQuestion', (req, res) => {
-  _fetchAndUpdateQuestion(req.params.questionId, req.params.data, req.params.description)
+  const data = { ...req.params.data, description: req.params.description };
+  _fetchAndUpdateQuestion(req.params.questionId, data)
     .then(() => {
       _fetchScript(req.params.scriptId)
         .then((script) => {
