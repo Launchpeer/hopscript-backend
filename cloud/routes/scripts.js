@@ -158,7 +158,6 @@ Parse.Cloud.define('createNewScript', (req, res) => {
  */
 
 Parse.Cloud.define('createNewQuestion', (req, res) => {
-  console.log('REQ PARAMS Q:', req.params);
   _createNewQuestion(req.params.question)
     .then((question) => {
       _reconcileQuestionToScript(question, req.params.scriptId)
