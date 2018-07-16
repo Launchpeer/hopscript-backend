@@ -158,6 +158,7 @@ Parse.Cloud.define('createNewScript', (req, res) => {
  */
 
 Parse.Cloud.define('createNewQuestion', (req, res) => {
+  console.log('REQ PARAMS Q:', req.params);
   _createNewQuestion(req.params.question)
     .then((question) => {
       _reconcileQuestionToScript(question, req.params.scriptId)
@@ -225,7 +226,7 @@ function _fetchAndUpdateQuestion(id, data) {
   });
 }
 Parse.Cloud.define('updateQuestion', (req, res) => {
-  _fetchAndUpdateQuestion(req.params.questionId, req.params.data)
+  _fetchAndUpdateQuestion(req.params.questionId, req.params.data, req.params.description)
     .then(() => {
       _fetchScript(req.params.scriptId)
         .then((script) => {
