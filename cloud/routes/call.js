@@ -85,7 +85,13 @@ Parse.Cloud.define('updateCall', (req, res) => {
         .then((r) => {
           res.success(r);
         })
-        .catch(updateCallErr => res.error(updateCallErr));
+        .catch((updateCallErr) => {
+          console.log('UPDATECALLERROR:', updateCallErr);
+          res.error(updateCallErr);
+        });
     })
-    .catch(fetchCallErr => res.error(fetchCallErr));
+    .catch((fetchCallErr) => {
+      console.log('FETCHCALLERR:', fetchCallErr);
+      res.error(fetchCallErr);
+    });
 });

@@ -1,6 +1,7 @@
 const { fetchUser } = require('../main');
 
 function _createNewQuestion(data) {
+  console.log('DATA', data);
   return new Promise((resolve) => {
     const Question = Parse.Object.extend('Question');
     const question = new Question();
@@ -116,10 +117,16 @@ function _reconcileScriptToUser(script, userId) {
 }
 
 function _createNewScript(user) {
+  console.log('USER!', user);
   return new Promise((resolve) => {
     const Script = Parse.Object.extend('Script');
     const script = new Script();
-    script.set('agent', user);
+    if (user.attributes.role === 'agent') {
+      script.set('agent', user);
+    } else if (user.attributes.role === 'brokerage') {
+      script.set('brokerage', user);
+    }
+
     resolve(script.save());
   });
 }
@@ -402,7 +409,7 @@ Parse.Cloud.define('deleteAnswer', (req, res) => {
 });
 
 
-// fetches all scripts associated with the user querying
+// fetches all scripts associated with the agent querying
 const fetchScripts = user => new Promise((resolve) => {
   const scriptsQuery = new Parse.Query("Script");
   scriptsQuery.equalTo('agent', user);
@@ -411,6 +418,21 @@ const fetchScripts = user => new Promise((resolve) => {
 
 Parse.Cloud.define('fetchScripts', (req, res) => {
   fetchScripts(req.user)
+    .then(scripts => res.success(scripts))
+    .catch((err) => {
+      res.error(err);
+    });
+});
+
+// fetches all scripts associated with the broker querying
+const fetchBrokerScripts = user => new Promise((resolve) => {
+  const scriptsQuery = new Parse.Query("Script");
+  scriptsQuery.equalTo('brokerage', user);
+  resolve(scriptsQuery.find(null, { userMasterKey: true }));
+});
+
+Parse.Cloud.define('fetchBrokerScripts', (req, res) => {
+  fetchBrokerScripts(req.user)
     .then(scripts => res.success(scripts))
     .catch((err) => {
       res.error(err);
