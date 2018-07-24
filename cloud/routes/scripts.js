@@ -1,7 +1,6 @@
 const { fetchUser } = require('../main');
 
 function _createNewQuestion(data) {
-  console.log('DATA', data);
   return new Promise((resolve) => {
     const Question = Parse.Object.extend('Question');
     const question = new Question();
@@ -157,11 +156,14 @@ Parse.Cloud.define('createNewScript', (req, res) => {
 });
 
 
-function _copyScript(user, scriptId) {
+function _fetchAndCopyScript(user, scriptId) {
   return new Promise((resolve) => {
     _fetchScript(scriptId)
       .then((script) => {
         const copiedScript = script.clone();
+        const newName = copiedScript.attributes.name.split('(by')[0];
+        copiedScript.unset('name');
+        copiedScript.set('name', newName);
         copiedScript.unset('brokerage');
         copiedScript.set('agent', user);
         resolve(copiedScript.save());
@@ -171,7 +173,7 @@ function _copyScript(user, scriptId) {
 
 
 Parse.Cloud.define('copyScript', (req, res) => {
-  _copyScript(req.user, req.params.scriptId)
+  _fetchAndCopyScript(req.user, req.params.scriptId)
     .then((script) => {
       _reconcileScriptToUser(script, req.params.userId)
         .then(() => {
