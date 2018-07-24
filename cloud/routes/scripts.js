@@ -156,6 +156,36 @@ Parse.Cloud.define('createNewScript', (req, res) => {
     });
 });
 
+
+function _copyScript(user, scriptId) {
+  return new Promise((resolve) => {
+    _fetchScript(scriptId)
+      .then((script) => {
+        const copiedScript = script.clone();
+        copiedScript.unset('brokerage');
+        copiedScript.set('agent', user);
+        resolve(copiedScript.save());
+      }).catch(err => console.log('err', err));
+  }).catch(err => console.log('err', err));
+}
+
+
+Parse.Cloud.define('copyScript', (req, res) => {
+  _copyScript(req.user, req.params.scriptId)
+    .then((script) => {
+      _reconcileScriptToUser(script, req.params.userId)
+        .then(() => {
+          res.success(script);
+        })
+        .catch((err) => {
+          res.error(err);
+        });
+    })
+    .catch((err) => {
+      res.error(err);
+    });
+});
+
 /**
  * As an agent, I want to create a new Question
  A Parse Question Object is instantiated, then that Question Object is added to the Script as a Pointer
