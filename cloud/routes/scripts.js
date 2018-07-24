@@ -117,7 +117,6 @@ function _reconcileScriptToUser(script, userId) {
 }
 
 function _createNewScript(user) {
-  console.log('USER!', user);
   return new Promise((resolve) => {
     const Script = Parse.Object.extend('Script');
     const script = new Script();
@@ -183,7 +182,10 @@ Parse.Cloud.define('updateScript', (req, res) => {
   const query = new Parse.Query(Script);
   query.get(req.params.scriptId, { useMasterKey: true })
     .then((script) => {
-      script.set('name', req.params.data.name);
+      if (script.attributes.brokerage && req.user.attributes.role === 'brokerage') {
+        script.set('name', `${req.params.data.name} (by ${req.user.attributes.username})`);
+      } else { script.set('name', req.params.data.name); }
+
       script.save()
         .then((updatedScript) => {
           res.success(updatedScript);
@@ -432,7 +434,7 @@ const fetchBrokerScripts = user => new Promise((resolve) => {
 });
 
 Parse.Cloud.define('fetchBrokerScripts', (req, res) => {
-  if (req.user.attributes === 'brokerage') {
+  if (req.user.attributes.role === 'brokerage') {
     fetchBrokerScripts(req.user)
       .then(scripts => res.success(scripts))
       .catch((err) => {
