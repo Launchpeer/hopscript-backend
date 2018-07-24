@@ -432,11 +432,19 @@ const fetchBrokerScripts = user => new Promise((resolve) => {
 });
 
 Parse.Cloud.define('fetchBrokerScripts', (req, res) => {
-  fetchBrokerScripts(req.user)
-    .then(scripts => res.success(scripts))
-    .catch((err) => {
-      res.error(err);
-    });
+  if (req.user.attributes === 'brokerage') {
+    fetchBrokerScripts(req.user)
+      .then(scripts => res.success(scripts))
+      .catch((err) => {
+        res.error(err);
+      });
+  } else {
+    fetchBrokerScripts(req.user.attributes.brokerage)
+      .then(scripts => res.success(scripts))
+      .catch((err) => {
+        res.error(err);
+      });
+  }
 });
 
 function _deleteQuestion(question) {
