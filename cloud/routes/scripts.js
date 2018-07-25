@@ -161,15 +161,16 @@ function _fetchAndCopyScript(user, scriptId) {
     _fetchScript(scriptId)
       .then((script) => {
         const copiedScript = script.clone();
-        _fetchAndCopyQuestions(copiedScript);
+        if (copiedScript.attributes.questions) { _fetchAndCopyQuestions(copiedScript); }
+
         const newName = copiedScript.attributes.name.split('(by')[0];
         copiedScript.unset('name');
         copiedScript.set('name', newName);
         copiedScript.unset('brokerage');
         copiedScript.set('agent', user);
         resolve(copiedScript.save());
-      }).catch(err => console.log('err', err));
-  }).catch(err => console.log('err', err));
+      }).catch(err => console.log('err _fetchScript', err));
+  }).catch(err => console.log('promise err', err));
 }
 
 
@@ -178,10 +179,11 @@ function _fetchAndSaveQuestion(questionId, script) {
     _fetchQuestion(questionId)
       .then((question) => {
         const copiedQ = question.clone();
+        if (copiedQ.attributes.answers) { _fetchAndCopyAnswers(copiedQ); }
         copiedQ.save();
         script.add('questions', copiedQ);
         resolve(script.save());
-      }).catch(err => console.log('err', err));
+      }).catch(err => console.log('err _fetchQuestion', err));
   });
 }
 
@@ -191,8 +193,30 @@ function _fetchAndCopyQuestions(script) {
       .then(() => {
         script.remove('questions', question);
         script.save();
-      })
+      }).catch(err => console.log('err _fetchAndSaveQuestion', err))
   )));
+}
+
+function _fetchAndCopyAnswers(question) {
+  Promise.all(question.attributes.answers.map(answer => (
+    _fetchAndSaveAnswer(answer.id, question)
+      .then(() => {
+        question.remove('answers', answer);
+        question.save();
+      }).catch(err => console.log('err _fetchAndSaveAnswer', err))
+  )));
+}
+
+function _fetchAndSaveAnswer(answerId, question) {
+  return new Promise((resolve) => {
+    _fetchAnswer(answerId)
+      .then((answer) => {
+        const copiedA = answer.clone();
+        copiedA.save();
+        question.add('answers', copiedA);
+        resolve(question.save());
+      }).catch(err => console.log('err _fetchAndSaveAnswer', err));
+  });
 }
 
 
