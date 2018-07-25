@@ -162,7 +162,6 @@ function _fetchAndCopyScript(user, scriptId) {
       .then((script) => {
         const copiedScript = script.clone();
         if (copiedScript.attributes.questions) { _fetchAndCopyQuestions(copiedScript); }
-
         const newName = copiedScript.attributes.name.split('(by')[0];
         copiedScript.unset('name');
         copiedScript.set('name', newName);
@@ -212,6 +211,7 @@ function _fetchAndSaveAnswer(answerId, question) {
     _fetchAnswer(answerId)
       .then((answer) => {
         const copiedA = answer.clone();
+        copiedA.set('route', question);
         copiedA.save();
         question.add('answers', copiedA);
         resolve(question.save());
