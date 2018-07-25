@@ -161,6 +161,7 @@ function _fetchAndCopyScript(user, scriptId) {
     _fetchScript(scriptId)
       .then((script) => {
         const copiedScript = script.clone();
+        _fetchAndCopyQuestions(copiedScript);
         const newName = copiedScript.attributes.name.split('(by')[0];
         copiedScript.unset('name');
         copiedScript.set('name', newName);
@@ -169,6 +170,29 @@ function _fetchAndCopyScript(user, scriptId) {
         resolve(copiedScript.save());
       }).catch(err => console.log('err', err));
   }).catch(err => console.log('err', err));
+}
+
+
+function _fetchAndSaveQuestion(questionId, script) {
+  return new Promise((resolve) => {
+    _fetchQuestion(questionId)
+      .then((question) => {
+        const copiedQ = question.clone();
+        copiedQ.save();
+        script.add('questions', copiedQ);
+        resolve(script.save());
+      }).catch(err => console.log('err', err));
+  });
+}
+
+function _fetchAndCopyQuestions(script) {
+  Promise.all(script.attributes.questions.map(question => (
+    _fetchAndSaveQuestion(question.id, script)
+      .then(() => {
+        script.remove('questions', question);
+        script.save();
+      })
+  )));
 }
 
 
