@@ -40,7 +40,8 @@ const {
   TWILIO_ACCOUNT_SID,
   TWILIO_NUMBER,
   TWILIO_AUTH_TOKEN,
-  TWILIO_TWIML_APP_SID
+  TWILIO_TWIML_APP_SID,
+  WAIT_URL
 } = require('./config');
 
 /**
@@ -141,7 +142,6 @@ app.get('/token', (request, response) => {
 
 app.post('/bot', (request, response) => {
   const { conferenceSid, audioURI } = request.body;
-  console.log('request header', request.header, 'request headers', request.headers);
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   client
     .conferences(conferenceSid)
@@ -165,7 +165,6 @@ app.post('/stop', (request, response) => {
 });
 
 app.get('/conference', (request, response) => {
-  console.log('request.query.audio', request.query.audio);
   const voiceResponse = new VoiceResponse();
   voiceResponse.play(request.query.audio);
   response.set('Content-Type', 'text/xml');
@@ -184,7 +183,9 @@ app.post('/start-call', (request, response) => {
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   if (request.body.number) {
     client.conferences(request.body.conferenceName).participants
-      .create({ from: TWILIO_NUMBER, to: request.body.number })
+      .create({
+        from: TWILIO_NUMBER, to: request.body.number
+      })
       .then((data) => {
         if (request.body.callId) {
           Parse.Cloud.run("updateCall", ({ callId: request.body.callId, conferenceSid: data.conferenceSid }))
@@ -198,20 +199,21 @@ app.post('/start-call', (request, response) => {
   }
 });
 
+app.get('/hold', (request, response) => {
+  const voiceResponse = new VoiceResponse();
+  voiceResponse.say('You did it good job');
+  response.set('Content-Type', 'text/xml');
+  response.send(voiceResponse.toString());
+});
+//
 // Create TwiML for outbound calls
 app.post('/voice', (request, response) => {
   const voiceResponse = new VoiceResponse();
   const dial = voiceResponse.dial();
-  dial.conference(request.body.conferenceName, { endConferenceOnExit: true });
-  response.set('Content-Type', 'text/xml');
-  response.send(voiceResponse.toString());
-});
-
-
-app.post('/joinconference', (request, response) => {
-  const voiceResponse = new VoiceResponse();
-  const dial = voiceResponse.dial();
-  dial.conference(request.body.conferenceName, { endConferenceOnExit: true });
+  dial.conference(request.body.conferenceName, {
+    startConferenceOnEnter: true,
+    endConferenceOnExit: true,
+  });
   response.set('Content-Type', 'text/xml');
   response.send(voiceResponse.toString());
 });
