@@ -1,7 +1,6 @@
 const { fetchUser } = require('../main');
 
 function _createNewQuestion(data) {
-  console.log('DATA', data);
   return new Promise((resolve) => {
     const Question = Parse.Object.extend('Question');
     const question = new Question();
@@ -117,7 +116,6 @@ function _reconcileScriptToUser(script, userId) {
 }
 
 function _createNewScript(user) {
-  console.log('USER!', user);
   return new Promise((resolve) => {
     const Script = Parse.Object.extend('Script');
     const script = new Script();
