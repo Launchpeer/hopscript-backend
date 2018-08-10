@@ -288,7 +288,6 @@ function _saveAnswerAndFetchScript(answer, scriptId) {
 }
 
 function _updateAnswer(answer, data, scriptId) {
-  console.log('data', data);
   return new Promise((resolve) => {
     answer.set('body', data.body);
     if (data.route) {
@@ -304,7 +303,6 @@ function _updateAnswer(answer, data, scriptId) {
 }
 
 Parse.Cloud.define('updateAnswer', (req, res) => {
-  console.log('req params ans', req.params.answer);
   _fetchAnswer(req.params.answerId)
     .then((answer) => {
       _updateAnswer(answer, req.params.answer, req.params.scriptId)
