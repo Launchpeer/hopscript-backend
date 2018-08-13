@@ -28,6 +28,7 @@ const { fetchLeadGroup, reconcileLeadGroupToLead } = require('./leadgroups');
 // creates new lead object
 function _createNewLead(user, lead, leadGroup) {
   return new Promise((resolve) => {
+    console.log('lead, leadgroup', lead, leadGroup);
     const Agent = user;
     const LObj = new Parse.Object('Lead');
     const formattedPhone = `+1-${lead.phone}`;
@@ -92,23 +93,47 @@ Parse.Cloud.define('createLeadInLeadGroup', (req, res) => {
 
 Parse.Cloud.define('createLead', (req, res) => {
   const { lead } = req.params;
-  _createNewLead(req.user, lead)
-    .then((newlySavedLead) => {
-      fetchUser(req.user.id)
-        .then((user) => {
-          _reconcileLeadToUser(user, newlySavedLead)
-            .then(r => res.success(r))
-            .catch((reconcileLeadToUserErr) => {
-              res.error('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
-            });
-        })
-        .catch((fetchUserErr) => {
-          res.error('FETCH USER ERR: ', fetchUserErr);
-        });
-    })
-    .catch((createNewLeadErr) => {
-      res.error('CREATE NEW LEAD ERR: ', createNewLeadErr);
-    });
+  if (lead.leadGroup) {
+    fetchLeadGroup(lead.leadGroup)
+      .then((leadGroup) => {
+        _createNewLead(req.user, lead, leadGroup)
+          .then((newlySavedLead) => {
+            reconcileLeadToLeadGroup(newlySavedLead, leadGroup.id);
+            fetchUser(req.user.id)
+              .then((user) => {
+                _reconcileLeadToUser(user, newlySavedLead)
+                  .then(r => res.success(r))
+                  .catch((reconcileLeadToUserErr) => {
+                    res.error('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
+                  });
+              })
+              .catch((fetchUserErr) => {
+                res.error('FETCH USER ERR: ', fetchUserErr);
+              });
+          })
+          .catch((createNewLeadErr) => {
+            res.error('CREATE NEW LEAD ERR: ', createNewLeadErr);
+          });
+      });
+  } else {
+    _createNewLead(req.user, lead)
+      .then((newlySavedLead) => {
+        fetchUser(req.user.id)
+          .then((user) => {
+            _reconcileLeadToUser(user, newlySavedLead)
+              .then(r => res.success(r))
+              .catch((reconcileLeadToUserErr) => {
+                res.error('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
+              });
+          })
+          .catch((fetchUserErr) => {
+            res.error('FETCH USER ERR: ', fetchUserErr);
+          });
+      })
+      .catch((createNewLeadErr) => {
+        res.error('CREATE NEW LEAD ERR: ', createNewLeadErr);
+      });
+  }
 });
 
 
@@ -230,14 +255,14 @@ Parse.Cloud.define('updateLead', (req, res) => {
 function _removeLeadFromLeadGroup(lead, leadGroup) {
   return new Promise((resolve) => {
     leadGroup.remove("leads", lead);
-    resolve(leadGroup.save);
+    resolve(leadGroup.save());
   });
 }
 
 // removes a leadgroup from a lead
 const removeLeadGroupFromLead = (lead, leadGroup) => new Promise((resolve) => {
   lead.remove("leadGroups", leadGroup);
-  resolve(lead.save);
+  resolve(lead.save());
 });
 
 
@@ -248,7 +273,9 @@ Parse.Cloud.define('removeGroupFromLead', (req, res) => {
         .then((leadGroup) => {
           _removeLeadFromLeadGroup(lead, leadGroup)
             .then(() => removeLeadGroupFromLead(lead, leadGroup)
-              .then(r => res.success(r)))
+              .then((r) => {
+                res.success(r);
+              }))
             .catch(removeError => res.error(removeError));
         }).catch(fetchLeadGroupErr => res.error(fetchLeadGroupErr));
     })
