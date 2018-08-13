@@ -28,7 +28,6 @@ const { fetchLeadGroup, reconcileLeadGroupToLead } = require('./leadgroups');
 // creates new lead object
 function _createNewLead(user, lead, leadGroup) {
   return new Promise((resolve) => {
-    console.log('lead, leadgroup', lead, leadGroup);
     const Agent = user;
     const LObj = new Parse.Object('Lead');
     const formattedPhone = `+1-${lead.phone}`;
