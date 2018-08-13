@@ -289,7 +289,7 @@ function _saveAnswerAndFetchScript(answer, scriptId) {
 
 function _updateAnswer(answer, data, scriptId) {
   return new Promise((resolve) => {
-    answer.set('body', data.answer);
+    answer.set('body', data.body);
     if (data.route) {
       _fetchQuestion(data.route)
         .then((question) => {
