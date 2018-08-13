@@ -30,7 +30,7 @@ function _createNewLead(user, lead, leadGroup) {
   return new Promise((resolve) => {
     const Agent = user;
     const LObj = new Parse.Object('Lead');
-    const formattedPhone = `+1${lead.phone}`;
+    const formattedPhone = `+1-${lead.phone}`;
     LObj.set('name', lead.name);
     LObj.set('phone', formattedPhone);
     LObj.set('email', lead.email);
@@ -186,7 +186,7 @@ function _updateLead(lead, data) {
         reconcileLeadToLeadGroup(lead, data.leadGroup)
           .then(() => reconcileLeadGroupToLead(lead, data.leadGroup));
       } else if (key === 'phone') {
-        const formattedPhone = `+1${data.phone}`;
+        const formattedPhone = `+1-${data.phone}`;
         lead.set(key, formattedPhone);
       } else if (key !== 'lead') {
         lead.set(key, data[key]);
