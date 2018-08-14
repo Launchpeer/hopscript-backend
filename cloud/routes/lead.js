@@ -103,14 +103,17 @@ Parse.Cloud.define('createLead', (req, res) => {
                 _reconcileLeadToUser(user, newlySavedLead)
                   .then(r => res.success(r))
                   .catch((reconcileLeadToUserErr) => {
+                    console.log('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
                     res.error('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
                   });
               })
               .catch((fetchUserErr) => {
+                console.log('FETCH USER ERR: ', fetchUserErr);
                 res.error('FETCH USER ERR: ', fetchUserErr);
               });
           })
           .catch((createNewLeadErr) => {
+            console.log('CREATE NEW LEAD ERR: ', createNewLeadErr);
             res.error('CREATE NEW LEAD ERR: ', createNewLeadErr);
           });
       });
@@ -122,14 +125,17 @@ Parse.Cloud.define('createLead', (req, res) => {
             _reconcileLeadToUser(user, newlySavedLead)
               .then(r => res.success(r))
               .catch((reconcileLeadToUserErr) => {
+                console.log('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
                 res.error('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
               });
           })
           .catch((fetchUserErr) => {
+            console.log('FETCH USER ERR: ', fetchUserErr);
             res.error('FETCH USER ERR: ', fetchUserErr);
           });
       })
       .catch((createNewLeadErr) => {
+        console.log('CREATE NEW LEAD ERR: ', createNewLeadErr);
         res.error('CREATE NEW LEAD ERR: ', createNewLeadErr);
       });
   }
@@ -275,10 +281,19 @@ Parse.Cloud.define('removeGroupFromLead', (req, res) => {
               .then((r) => {
                 res.success(r);
               }))
-            .catch(removeError => res.error(removeError));
-        }).catch(fetchLeadGroupErr => res.error(fetchLeadGroupErr));
+            .catch((removeError) => {
+              console.log('REMOVE ERR:', removeError);
+              res.error(removeError);
+            });
+        }).catch((fetchLeadGroupErr) => {
+          console.log('FETCH LG ERR', fetchLeadGroupErr);
+          res.error(fetchLeadGroupErr);
+        });
     })
-    .catch(fetchLeadErr => res.error(fetchLeadErr));
+    .catch((fetchLeadErr) => {
+      console.log('FETCH LEAD ERR', fetchLeadErr);
+      res.error(fetchLeadErr);
+    });
 });
 
 
