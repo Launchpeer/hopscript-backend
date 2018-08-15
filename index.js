@@ -145,10 +145,9 @@ app.post('/bot', (request, response) => {
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   client
     .conferences(conferenceSid)
-    .update({ announceMethod: 'GET', announceUrl: `https://swiftscript-backend-qa.herokuapp.com/conference?audio=${audioURI}` })
+    .update({ announceMethod: 'GET', announceUrl: `https://swiftscript-backend-prod.herokuapp.com/conference?audio=${audioURI}` })
     .then(data => data)
-    .done()
-    .catch(err => console.log("BOT ERROR", err));
+    .done();
   response.sendStatus(200);
 });
 
@@ -158,7 +157,7 @@ app.post('/stop', (request, response) => {
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   client
     .conferences(confSID)
-    .update({ announceUrl: 'https://swiftscript-backend-qa.herokuapp.com/stopaudio' })
+    .update({ announceUrl: 'https://swiftscript-backend-prod.herokuapp.com/stopaudio' })
     .then(data => (data))
     .done();
   response.sendStatus(200);
