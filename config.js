@@ -1,25 +1,27 @@
+require('dotenv').config();
+
 module.exports = {
-  MONGODB_URI:
-    process.env.MONGODB_URI || 'mongodb://localhost:27017/parse-example',
-  PARSE_APP_ID: process.env.PARSE_APP_ID || 'your_app_id',
-  PARSE_MASTER_KEY:
-    process.env.PARSE_MASTER_KEY || '?Ag4M)ZA*BBpIGL!XIqCe6acB&rcmL',
-  PARSE_SERVER_URL:
-    process.env.PARSE_SERVER_URL || 'http://localhost:1337/parse',
-  PARSE_ADMIN_USERNAME: process.env.PARSE_ADMIN_DASHBOARD_USERNAME || 'admin',
-  PARSE_ADMIN_PASSWORD:
-    process.env.PARSE_ADMIN_DASHBOARD_PASSWORD || 'password',
-  PARSE_DASHBOARD_APP_NAME:
-    process.env.PARSE_DASHBOARD_APP_NAME || 'yourappname',
-  PARSE_SERVER_MOUNT: process.env.PARSE_SERVER_MOUNT || '/parse',
-  PARSE_CLIENT_KEY: process.env.PARSE_CLIENT_KEY || 'client_key',
-  GCM_SENDER_ID: process.env.GCM_SENDER_ID || 'sender_id',
-  GCM_API_KEY: process.env.GCM_API_KEY || 'gcm_api_key',
-  APPLE_BUNDLE_ID: process.env.APPLE_BUNDLE_ID || 'com.lp.example.app',
-  APNS_PASSPHRASE: process.env.APNS_PASSPHRASE || 'password',
-  APNS_PUSH_PRODUCTION: process.env.APNS_PUSH_PRODUCTION || false,
-  SENDGRID_API_KEY:
-    process.env.SENDGRID_API_KEY ||
-    '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',
-  SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL
-}
+  PORT: process.env.PORT,
+  MONGODB_URI: process.env.MONGODB_URI,
+  PARSE_ADMIN_PASSWORD: process.env.PARSE_ADMIN_DASHBOARD_PASSWORD,
+  PARSE_ADMIN_USERNAME: process.env.PARSE_ADMIN_DASHBOARD_USERNAME,
+  PARSE_APP_ID: process.env.PARSE_APP_ID,
+  PARSE_CLIENT_KEY: process.env.PARSE_CLIENT_KEY,
+  PARSE_DASHBOARD_APP_NAME: process.env.PARSE_DASHBOARD_APP_NAME,
+  PARSE_MASTER_KEY: process.env.PARSE_MASTER_KEY,
+  PARSE_SERVER_MOUNT: process.env.PARSE_SERVER_MOUNT,
+  PARSE_SERVER_URL: process.env.PARSE_SERVER_URL,
+  PORTAL_URL: process.env.PORTAL_URL,
+  SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
+  SENDGRID_FROM_EMAIL: process.env.SENDGRID_FROM_EMAIL,
+  STRIPE_API_KEY: process.env.STRIPE_API_KEY,
+  STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
+  S3_SECRET_KEY: process.env.S3_SECRET_KEY,
+  S3_ACCESS_KEY: process.env.S3_ACCESS_KEY,
+  S3_BUCKET: process.env.S3_BUCKET,
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
+  TWILIO_NUMBER: process.env.TWILIO_NUMBER,
+  TWILIO_TWIML_APP_SID: process.env.TWILIO_TWIML_APP_SID,
+  TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER
+};
