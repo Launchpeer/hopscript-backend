@@ -148,7 +148,6 @@ app.post('/bot', (request, response) => {
     .update({ announceMethod: 'GET', announceUrl: `https://swiftscript-backend-prod.herokuapp.com/conference?audio=${audioURI}` })
     .then(data => data)
     .done()
-    .catch(err => console.log("BOT ERROR", err));
   response.sendStatus(200);
 });
 
