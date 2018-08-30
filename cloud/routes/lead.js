@@ -178,7 +178,7 @@ Parse.Cloud.define('fetchLead', (req, res) => {
 // fetches all leads associated with the user querying
 const fetchLeads = user => new Promise((resolve) => {
   const leadQuery = new Parse.Query("Lead");
-  leadQuery.equalTo('agent', user);
+  leadQuery.equalTo('agent', user).limit(50);
   resolve(leadQuery.find(null, { userMasterKey: true }));
 });
 
@@ -190,6 +190,21 @@ Parse.Cloud.define('fetchLeads', (req, res) => {
     });
 });
 
+const fetchNextLeads = (user, skip) => new Promise((resolve) => {
+  const leadQuery = new Parse.Query("Lead");
+  const skipNumber = skip || 50;
+  leadQuery.equalTo('agent', user).skip(skipNumber).limit(50);
+  resolve(leadQuery.find(null, { userMasterKey: true }));
+});
+
+
+Parse.Cloud.define('fetchNextLeads', (req, res) => {
+  fetchNextLeads(req.user, req.params.skip)
+    .then(leads => res.success(leads))
+    .catch((err) => {
+      res.error(err);
+    });
+});
 /**
  * As an agent I want to update a Lead
  *
