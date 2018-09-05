@@ -31,7 +31,7 @@ function _createNewLead(user, lead, leadGroup) {
   return new Promise((resolve) => {
     const Agent = user;
     const LObj = new Parse.Object('Lead');
-    const formattedPhone = `+1${lead.phone}`;
+    const formattedPhone = `+1-${lead.phone}`;
     LObj.set('name', lead.name);
     LObj.set('phone', formattedPhone);
     LObj.set('email', lead.email);
@@ -96,23 +96,53 @@ Parse.Cloud.define('createLeadInLeadGroup', (req, res) => {
 
 Parse.Cloud.define('createLead', (req, res) => {
   const { lead } = req.params;
-  _createNewLead(req.user, lead)
-    .then((newlySavedLead) => {
-      fetchUser(req.user.id)
-        .then((user) => {
-          _reconcileLeadToUser(user, newlySavedLead)
-            .then(r => res.success(r))
-            .catch((reconcileLeadToUserErr) => {
-              res.error('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
-            });
-        })
-        .catch((fetchUserErr) => {
-          res.error('FETCH USER ERR: ', fetchUserErr);
-        });
-    })
-    .catch((createNewLeadErr) => {
-      res.error('CREATE NEW LEAD ERR: ', createNewLeadErr);
-    });
+  if (lead.leadGroup) {
+    fetchLeadGroup(lead.leadGroup)
+      .then((leadGroup) => {
+        _createNewLead(req.user, lead, leadGroup)
+          .then((newlySavedLead) => {
+            reconcileLeadToLeadGroup(newlySavedLead, leadGroup.id);
+            fetchUser(req.user.id)
+              .then((user) => {
+                _reconcileLeadToUser(user, newlySavedLead)
+                  .then(r => res.success(r))
+                  .catch((reconcileLeadToUserErr) => {
+                    console.log('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
+                    res.error('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
+                  });
+              })
+              .catch((fetchUserErr) => {
+                console.log('FETCH USER ERR: ', fetchUserErr);
+                res.error('FETCH USER ERR: ', fetchUserErr);
+              });
+          })
+          .catch((createNewLeadErr) => {
+            console.log('CREATE NEW LEAD ERR: ', createNewLeadErr);
+            res.error('CREATE NEW LEAD ERR: ', createNewLeadErr);
+          });
+      });
+  } else {
+    _createNewLead(req.user, lead)
+      .then((newlySavedLead) => {
+        fetchUser(req.user.id)
+          .then((user) => {
+            _reconcileLeadToUser(user, newlySavedLead)
+              .then(r => res.success(r))
+              .catch((reconcileLeadToUserErr) => {
+                console.log('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
+                res.error('RECONCILE LEAD TO USER ERR: ', reconcileLeadToUserErr);
+              });
+          })
+          .catch((fetchUserErr) => {
+            console.log('FETCH USER ERR: ', fetchUserErr);
+            res.error('FETCH USER ERR: ', fetchUserErr);
+          });
+      })
+      .catch((createNewLeadErr) => {
+        console.log('CREATE NEW LEAD ERR: ', createNewLeadErr);
+        res.error('CREATE NEW LEAD ERR: ', createNewLeadErr);
+      });
+  }
 });
 
 Parse.Cloud.define('createLeadFromCSV', (req, res) => {
@@ -165,7 +195,7 @@ Parse.Cloud.define('fetchLead', (req, res) => {
 // fetches all leads associated with the user querying
 const fetchLeads = user => new Promise((resolve) => {
   const leadQuery = new Parse.Query("Lead");
-  leadQuery.equalTo('agent', user);
+  leadQuery.equalTo('agent', user).limit(50);
   resolve(leadQuery.find(null, { userMasterKey: true }));
 });
 
@@ -177,6 +207,21 @@ Parse.Cloud.define('fetchLeads', (req, res) => {
     });
 });
 
+const fetchNextLeads = (user, skip) => new Promise((resolve) => {
+  const leadQuery = new Parse.Query("Lead");
+  const skipNumber = skip || 50;
+  leadQuery.equalTo('agent', user).skip(skipNumber).limit(50);
+  resolve(leadQuery.find(null, { userMasterKey: true }));
+});
+
+
+Parse.Cloud.define('fetchNextLeads', (req, res) => {
+  fetchNextLeads(req.user, req.params.skip)
+    .then(leads => res.success(leads))
+    .catch((err) => {
+      res.error(err);
+    });
+});
 /**
  * As an agent I want to update a Lead
  *
@@ -203,7 +248,7 @@ function _updateLead(lead, data) {
         reconcileLeadToLeadGroup(lead, data.leadGroup)
           .then(() => reconcileLeadGroupToLead(lead, data.leadGroup));
       } else if (key === 'phone') {
-        const formattedPhone = `+1${data.phone}`;
+        const formattedPhone = `+1-${data.phone}`;
         lead.set(key, formattedPhone);
       } else if (key !== 'lead') {
         lead.set(key, data[key]);
@@ -247,14 +292,14 @@ Parse.Cloud.define('updateLead', (req, res) => {
 function _removeLeadFromLeadGroup(lead, leadGroup) {
   return new Promise((resolve) => {
     leadGroup.remove("leads", lead);
-    resolve(leadGroup.save);
+    resolve(leadGroup.save());
   });
 }
 
 // removes a leadgroup from a lead
 const removeLeadGroupFromLead = (lead, leadGroup) => new Promise((resolve) => {
   lead.remove("leadGroups", leadGroup);
-  resolve(lead.save);
+  resolve(lead.save());
 });
 
 
@@ -265,11 +310,22 @@ Parse.Cloud.define('removeGroupFromLead', (req, res) => {
         .then((leadGroup) => {
           _removeLeadFromLeadGroup(lead, leadGroup)
             .then(() => removeLeadGroupFromLead(lead, leadGroup)
-              .then(r => res.success(r)))
-            .catch(removeError => res.error(removeError));
-        }).catch(fetchLeadGroupErr => res.error(fetchLeadGroupErr));
+              .then((r) => {
+                res.success(r);
+              }))
+            .catch((removeError) => {
+              console.log('REMOVE ERR:', removeError);
+              res.error(removeError);
+            });
+        }).catch((fetchLeadGroupErr) => {
+          console.log('FETCH LG ERR', fetchLeadGroupErr);
+          res.error(fetchLeadGroupErr);
+        });
     })
-    .catch(fetchLeadErr => res.error(fetchLeadErr));
+    .catch((fetchLeadErr) => {
+      console.log('FETCH LEAD ERR', fetchLeadErr);
+      res.error(fetchLeadErr);
+    });
 });
 
 
