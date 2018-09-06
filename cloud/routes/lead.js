@@ -27,7 +27,6 @@ const { fetchLeadGroup, reconcileLeadGroupToLead } = require('./leadgroups');
 
 // creates new lead object
 function _createNewLead(user, lead, leadGroup) {
-  console.log("here");
   return new Promise((resolve) => {
     const Agent = user;
     const LObj = new Parse.Object('Lead');
@@ -35,13 +34,12 @@ function _createNewLead(user, lead, leadGroup) {
     LObj.set('name', lead.name);
     LObj.set('phone', formattedPhone);
     LObj.set('email', lead.email);
-    console.log("setting...");
     if (lead.leadType) {
       LObj.set('leadType', lead.leadType);
     }
     if (leadGroup) { LObj.addUnique('leadGroups', leadGroup); }
     LObj.set('agent', Agent);
-    resolve(LObj.save().then(e => console.log("done", e)));
+    resolve(LObj.save());
   });
 }
 
@@ -150,7 +148,7 @@ Parse.Cloud.define('createLeadFromCSV', (req, res) => {
   Promise.all(leadCSV.map(lead => _createNewLead(req.user, lead)))
     .then((e) => {
       console.log("good", e);
-      res.success("");
+      res.success("good");
     })
     .catch((err) => {
       console.log("bad", err);
