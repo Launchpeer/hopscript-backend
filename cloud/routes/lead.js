@@ -24,23 +24,35 @@ const { fetchLeadGroup, reconcileLeadGroupToLead } = require('./leadgroups');
  *
  */
 
+Parse.Cloud.define('createLeadFromCSV', (req, res) => {
+  const { leadCSV } = req.params;
+  Promise.all(leadCSV.map(lead => _createNewLead(req.user, lead)))
+    .then(() => {
+      console.log("good");
+      res.success("good");
+    })
+    .catch((err) => {
+      console.log("bad", err);
+      res.error(err);
+    });
+});
+
 
 // creates new lead object
 function _createNewLead(user, lead, leadGroup) {
-  return new Promise((resolve) => {
-    const Agent = user;
-    const LObj = new Parse.Object('Lead');
-    const formattedPhone = `+1-${lead.phone}`;
-    LObj.set('name', lead.name);
-    LObj.set('phone', formattedPhone);
-    LObj.set('email', lead.email);
-    if (lead.leadType) {
-      LObj.set('leadType', lead.leadType);
-    }
-    if (leadGroup) { LObj.addUnique('leadGroups', leadGroup); }
-    LObj.set('agent', Agent);
-    resolve(LObj.save());
-  });
+  const Agent = user;
+  const LObj = new Parse.Object('Lead');
+  const formattedPhone = `+1-${lead.phone}`;
+  LObj.set('name', lead.name);
+  LObj.set('phone', formattedPhone);
+  LObj.set('email', lead.email);
+  if (lead.leadType) {
+    LObj.set('leadType', lead.leadType);
+  }
+  if (leadGroup) { LObj.addUnique('leadGroups', leadGroup); }
+  LObj.set('agent', Agent);
+  console.log("saving ", lead.name);
+  return LObj.save();
 }
 
 // adds a lead to a leadgroup object
@@ -142,20 +154,6 @@ Parse.Cloud.define('createLead', (req, res) => {
       });
   }
 });
-
-Parse.Cloud.define('createLeadFromCSV', (req, res) => {
-  const { leadCSV } = req.params;
-  Promise.all(leadCSV.map(lead => _createNewLead(req.user, lead)))
-    .then((e) => {
-      console.log("good", e);
-      res.success("good");
-    })
-    .catch((err) => {
-      console.log("bad", err);
-      res.error(err);
-    });
-});
-
 
 /**
  * As an agent I want to fetch a Lead

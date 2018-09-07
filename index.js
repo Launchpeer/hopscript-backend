@@ -4,6 +4,7 @@
  * Installing Parse as middleware on top of express if we later wish to run our own express server in tandem
  */
 
+require('dotenv').config();
 const express = require('express');
 const { ParseServer } = require('parse-server');
 const twilio = require('twilio');
@@ -18,7 +19,6 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors());
-require('dotenv').config();
 
 
 const {
