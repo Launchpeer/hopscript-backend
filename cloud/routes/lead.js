@@ -232,6 +232,34 @@ Parse.Cloud.define('fetchNextLeads', (req, res) => {
       res.error(err);
     });
 });
+
+
+function _searchSingleString(searchItem) {
+  const leadQuery = new Parse.Query('Lead');
+  leadQuery.matches('name', searchItem, "i");
+  return leadQuery;
+}
+
+Parse.Cloud.define('searchForLeads', (req, res) => {
+  if (!req.params.searchStr) { return res.error('search String Required'); }
+  if (req.params.searchStr.length === 0) { return res.error('search String Required'); }
+  const queryArray = [];
+  req.params.searchStr
+    .toLowerCase()
+    .split(' ')
+    .forEach((searchItem) => {
+      queryArray.push(_searchSingleString(searchItem));
+    });
+  Parse.Query
+    .and(...queryArray)
+    .limit(50)
+    .find()
+    .then(r => res.success(r))
+    .catch((err) => {
+      console.log('SEARCH ACTIVE CAMPAIGNS ERR: ', err);
+      res.error(err);
+    });
+});
 /**
  * As an agent I want to update a Lead
  *
