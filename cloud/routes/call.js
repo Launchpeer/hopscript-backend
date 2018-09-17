@@ -28,6 +28,7 @@ function _fetchCall(callId) {
 
 
 Parse.Cloud.define('createCall', (req, res) => {
+  if (!req.user) res.error('no user');
   const { lead, script, title } = req.params.call;
   Promise.all([
     _fetchScript(script),
@@ -36,9 +37,13 @@ Parse.Cloud.define('createCall', (req, res) => {
     .then((d) => {
       _createNewCall(req.user, title, d[0], d[1])
         .then((createdCall) => {
+          console.log("Create Call SUCCESS: ", createdCall);
           res.success(createdCall);
         })
-        .catch(createNewCallErr => res.error('CREATE NEW CALL ERR: ', createNewCallErr));
+        .catch((createNewCallErr) => {
+          console.log("Create Call ERROR: ", createNewCallErr);
+          res.error('CREATE NEW CALL ERR: ', createNewCallErr);
+        });
     })
     .catch((err) => {
       console.log('promise err', err);

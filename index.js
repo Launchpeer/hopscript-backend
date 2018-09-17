@@ -142,6 +142,8 @@ app.get('/token', (request, response) => {
 
 app.post('/bot', (request, response) => {
   const { conferenceSid, audioURI } = request.body;
+  console.log("/BOT", conferenceSid);
+  console.log("/Boog", audioURI);
   const client = require('twilio')(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
   client
     .conferences(conferenceSid)

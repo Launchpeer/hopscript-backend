@@ -85,13 +85,11 @@ function addAnswertoQuestion(answer, questionId) {
 }
 
 function _fetchScript(scriptId) {
-  return new Promise((resolve) => {
-    const Script = Parse.Object.extend('Script');
-    const query = new Parse.Query(Script);
-    query.include('questions');
-    query.include('questions.answers');
-    resolve(query.get(scriptId));
-  });
+  const Script = Parse.Object.extend('Script');
+  const query = new Parse.Query(Script);
+  query.include('questions');
+  query.include('questions.answers');
+  return query.get(scriptId);
 }
 
 Parse.Cloud.define('fetchScript', (req, res) => {

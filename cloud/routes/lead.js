@@ -180,11 +180,11 @@ Parse.Cloud.define('createLead', (req, res) => {
  */
 
 // fetches a lead & the leadgroups associated with it
-const _fetchLead = leadId => new Promise((resolve) => {
+const _fetchLead = (leadId) => {
   const leadQuery = new Parse.Query('Lead');
   leadQuery.include('leadGroups');
-  resolve(leadQuery.get(leadId));
-});
+  return leadQuery.get(leadId);
+};
 
 
 Parse.Cloud.define('fetchLead', (req, res) => {
