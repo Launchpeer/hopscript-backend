@@ -3,27 +3,23 @@ const { _fetchScript } = require('./scripts');
 const { fetchLeadGroup } = require('./leadgroups');
 
 function _createNewCall(user, title, script, lead, leadGroup) {
-  return new Promise((resolve) => {
-    const CObj = new Parse.Object('Call');
-    CObj.set('agent', user);
-    CObj.set('title', title);
-    CObj.set('script', script);
-    CObj.set('startTime', new Date().getTime());
-    if (lead) { CObj.set('lead', lead); }
-    if (leadGroup) { CObj.set('leadGroup', leadGroup); }
-    resolve(CObj.save());
-  });
+  const CObj = new Parse.Object('Call');
+  CObj.set('agent', user);
+  CObj.set('title', title);
+  CObj.set('script', script);
+  CObj.set('startTime', new Date().getTime());
+  if (lead) { CObj.set('lead', lead); }
+  if (leadGroup) { CObj.set('leadGroup', leadGroup); }
+  return CObj.save();
 }
 
 function _fetchCall(callId) {
-  return new Promise((resolve) => {
-    const callQuery = new Parse.Query('Call');
-    callQuery.include('script');
-    callQuery.include('script.questions');
-    callQuery.include('script.questions.answers');
-    callQuery.include('lead');
-    resolve(callQuery.get(callId));
-  });
+  const callQuery = new Parse.Query('Call');
+  callQuery.include('script');
+  callQuery.include('script.questions');
+  callQuery.include('script.questions.answers');
+  callQuery.include('lead');
+  return callQuery.get(callId);
 }
 
 
@@ -60,26 +56,22 @@ Parse.Cloud.define('fetchCall', (req, res) => {
 });
 
 function _setValues(call, data, key) {
-  return new Promise((resolve) => {
-    if (key === 'leadGroup' && key.length > 0) {
-      fetchLeadGroup(data[key])
-        .then((res) => {
-          call.set(key, res);
-          resolve(call.save());
-        })
-        .catch(err => console.log('FETCH LEAD GROUP ERR', err));
-    } else if (key !== 'callId') {
-      call.set(key, data[key]);
-      resolve(call.save());
-    }
-  });
+  if (key === 'leadGroup' && key.length > 0) {
+    fetchLeadGroup(data[key])
+      .then((res) => {
+        call.set(key, res);
+        return call.save();
+      })
+      .catch(err => console.log('FETCH LEAD GROUP ERR', err));
+  } else if (key !== 'callId') {
+    call.set(key, data[key]);
+    return call.save();
+  }
 }
 
 // updates the call object
 function _updateCall(call, data) {
-  return new Promise((resolve) => {
-    resolve(Promise.all(Object.keys(data).map(key => (_setValues(call, data, key)))));
-  });
+  return Promise.all(Object.keys(data).map(key => (_setValues(call, data, key))));
 }
 
 
